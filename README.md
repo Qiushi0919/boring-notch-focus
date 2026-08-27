@@ -33,6 +33,10 @@
 
 Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch the star of the show! Say goodbye to boring status bars: with Boring Notch, your notch transforms into a dynamic music control center, complete with a vibrant visualizer and all the essential music controls you need. But that’s just the start! Boring Notch also offers calendar integration, a handy file shelf with AirDrop support, a complete MacOS HUD replacement and more!
 
+<p align="center">
+  <img src="docs/images/boring-notch-focus-overview.png" alt="Boring Notch Focus 功能总览" width="1200" />
+</p>
+
 ## Boring Notch Focus 演示 / Demo
 
 ### 音乐岛 / Music Island
