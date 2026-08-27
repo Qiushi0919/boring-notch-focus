@@ -26,12 +26,12 @@ struct MusicControllerSelectionView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Choose a Music Source")
+            Text(AppL10n.text("Choose a Music Source"))
                 .font(.title)
                 .fontWeight(.bold)
                 .padding(.top, 24)
 
-            Text("Select the music source you want to use. You can change this later in the app settings.")
+            Text(AppL10n.text("Select the music source you want to use. You can change this later in the app settings."))
                 .multilineTextAlignment(.center)
                 .font(.body)
                 .foregroundColor(.secondary)
@@ -56,7 +56,7 @@ struct MusicControllerSelectionView: View {
 
 //            Spacer()
 
-            Button("Continue", action: {
+            Button(AppL10n.text("Continue"), action: {
                 self.mediaController = self.selectedMediaController
                 NotificationCenter.default.post(
                     name: Notification.Name.mediaControllerChanged,
@@ -123,13 +123,13 @@ extension MediaControllerType {
     var description: String {
         switch self {
         case .nowPlaying:
-            return "Works with most media apps, including browsers, to detect what's playing. Note: This may be removed in a future macOS version."
+            return AppL10n.text("Works with most media apps, including browsers, to detect what's playing. Note: This may be removed in a future macOS version.")
         case .spotify:
-            return "Connects directly to the Spotify app."
+            return AppL10n.text("Connects directly to the Spotify app.")
         case .appleMusic:
-            return "Connects directly to the Apple Music app."
+            return AppL10n.text("Connects directly to the Apple Music app.")
         case .youtubeMusic:
-            return "Requires a third-party client with API plugin enabled."
+            return AppL10n.text("Requires a third-party client with API plugin enabled.")
         }
     }
 }

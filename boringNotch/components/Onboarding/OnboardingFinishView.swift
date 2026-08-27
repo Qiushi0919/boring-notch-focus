@@ -21,11 +21,11 @@ struct OnboardingFinishView: View {
                 .foregroundColor(.effectiveAccent)
                 .padding()
 
-            Text("You're All Set!")
+            Text(AppL10n.text("You're All Set!"))
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("You can now enjoy the app. If you want to tweak things further, you can always visit the settings.")
+            Text(AppL10n.text("You can now enjoy the app. If you want to tweak things further, you can always visit the settings."))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -36,12 +36,12 @@ struct OnboardingFinishView: View {
 
             VStack(spacing: 12) {
                 Button(action: onOpenSettings) {
-                    Label("Customize in Settings", systemImage: "gear")
+                    Label(AppL10n.text("Customize in Settings"), systemImage: "gear")
                         .controlSize(.large)
                 }
                 .controlSize(.large)
 
-                Button("Finish", action: onFinish)
+                Button(AppL10n.text("Finish"), action: onFinish)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)

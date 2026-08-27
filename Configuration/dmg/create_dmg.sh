@@ -82,6 +82,7 @@ export DMG_VOLUME_NAME="$VOLUME_NAME"
 BACKGROUND_TIFF="$BACKGROUND_DIR/background.tiff"
 
 export DMG_BACKGROUND="$(abs_path "$BACKGROUND_TIFF")"
+export DMG_GUIDE_PATH="$(abs_path "$SCRIPT_DIR/首次打开说明.html")"
 
 # Badge icon: use the app's icon for badging the volume icon
 if DMG_ICON_ICNS="$(find_app_icns "$DMG_APP_PATH" 2>/dev/null)"; then

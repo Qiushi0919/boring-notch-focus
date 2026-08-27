@@ -10,6 +10,7 @@ APP_PATH = os.environ.get('DMG_APP_PATH')
 VOLUME_NAME = os.environ.get('DMG_VOLUME_NAME', 'boringNotch')
 BACKGROUND = os.environ.get('DMG_BACKGROUND', '')
 BADGE_ICON = os.environ.get('DMG_BADGE_ICON', '')
+GUIDE_PATH = os.environ.get('DMG_GUIDE_PATH', '')
 
 # If DMG_BACKGROUND not provided, default to the hiDPI TIFF in .background.
 if not BACKGROUND:
@@ -21,7 +22,7 @@ format = 'UDZO'
 compression_level = 9
 
 # Files and symlinks to include in the DMG
-files = [APP_PATH] if APP_PATH else []
+files = [path for path in (APP_PATH, GUIDE_PATH) if path and os.path.exists(path)]
 symlinks = {'Applications': '/Applications'}
 
 # Background image path (dmgbuild will copy this file into the DMG's .background)
@@ -39,6 +40,7 @@ app_basename = os.path.basename(APP_PATH) if APP_PATH else 'boringNotch.app'
 icon_locations = {
     app_basename: (150, 180),
     'Applications': (510, 180),
+    '首次打开说明.html': (330, 330),
 }
 
 # Misc Finder options

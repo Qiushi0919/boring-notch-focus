@@ -3,6 +3,16 @@
     <channel>
         <title>Boring Notch Focus</title>
         <item>
+            <title>1.1.0</title>
+            <pubDate>Thu, 27 Aug 2026 20:08:24 +0800</pubDate>
+            <link>https://github.com/Qiushi0919/boring-notch-focus</link>
+            <sparkle:version>1100</sparkle:version>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://qiushi0919.github.io/boring-notch-focus/releases/Boring-Notch-Focus-1.1.0.md</sparkle:releaseNotesLink>
+            <enclosure url="https://github.com/Qiushi0919/boring-notch-focus/releases/download/v1.1.0/Boring-Notch-Focus-1.1.0.dmg" length="12155624" type="application/octet-stream" sparkle:edSignature="Xkld8Bw5xTmeFOHbUWzzSEx8mSfbetG7GJ+H7IbcOjesJW+NUc5wr+iibUViltcEVwzSCJOEzTVaSLCWeQgaAg=="/>
+        </item>
+        <item>
             <title>1.0.0</title>
             <pubDate>Thu, 27 Aug 2026 19:29:51 +0800</pubDate>
             <link>https://github.com/Qiushi0919/boring-notch-focus</link>

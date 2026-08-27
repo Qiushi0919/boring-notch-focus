@@ -441,6 +441,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        if !coordinator.firstLaunch,
+           UserDefaults.standard.bool(forKey: "openSettingsAfterOnboardingRelaunch")
+        {
+            UserDefaults.standard.removeObject(forKey: "openSettingsAfterOnboardingRelaunch")
+            DispatchQueue.main.async {
+                SettingsWindowController.shared.showWindow()
+            }
+        }
+
         previousScreens = NSScreen.screens
     }
 
@@ -564,30 +573,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(self)
     }
 
-    private func showOnboardingWindow(step: OnboardingStep = .welcome) {
+    private func showOnboardingWindow(step: OnboardingStep = .language) {
         if onboardingWindowController == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+                contentRect: NSRect(x: 0, y: 0, width: 440, height: 640),
                 styleMask: [.titled, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             window.center()
-            window.title = "Onboarding"
+            window.title = "Boring Notch Focus"
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
             window.contentView = NSHostingView(
                 rootView: OnboardingView(
                     step: step,
                     onFinish: {
-                        window.orderOut(nil)
-//                        NSApp.setActivationPolicy(.accessory)
                         window.close()
-                        NSApp.deactivate()
+                        ApplicationRelauncher.restart()
                     },
                     onOpenSettings: {
+                        UserDefaults.standard.set(
+                            true,
+                            forKey: "openSettingsAfterOnboardingRelaunch"
+                        )
                         window.close()
-                        SettingsWindowController.shared.showWindow()
+                        ApplicationRelauncher.restart()
                     }
                 ))
             window.isRestorable = false

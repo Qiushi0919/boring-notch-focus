@@ -17,6 +17,7 @@ import SwiftUIIntrospect
 struct SettingsView: View {
     @State private var selectedTab = "General"
     @State private var accentColorUpdateTrigger = UUID()
+    @AppStorage(AppLanguage.storageKey) private var appLanguageRaw: String = AppLanguage.system.rawValue
 
     let updaterController: SPUStandardUpdaterController?
 
@@ -29,6 +30,9 @@ struct SettingsView: View {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
                     Label(AppL10n.text("General"), systemImage: "gear")
+                }
+                NavigationLink(value: "Permissions") {
+                    Label(AppL10n.text("Permissions"), systemImage: "lock.shield")
                 }
                 NavigationLink(value: "Appearance") {
                     Label(AppL10n.text("Appearance"), systemImage: "eye")
@@ -76,6 +80,8 @@ struct SettingsView: View {
                 switch selectedTab {
                 case "General":
                     GeneralSettings()
+                case "Permissions":
+                    PermissionCenterView()
                 case "Appearance":
                     Appearance()
                 case "Media":
@@ -125,7 +131,7 @@ struct SettingsView: View {
         .frame(width: 700)
         .background(Color(NSColor.windowBackgroundColor))
         .tint(.effectiveAccent)
-        .id(accentColorUpdateTrigger)
+        .id("\(accentColorUpdateTrigger.uuidString)-\(appLanguageRaw)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
         }
@@ -139,6 +145,7 @@ struct GeneralSettings: View {
     }
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject var coordinator = BoringViewCoordinator.shared
+    @AppStorage(AppLanguage.storageKey) private var appLanguageRaw: String = AppLanguage.system.rawValue
 
     @Default(.mirrorShape) var mirrorShape
     @Default(.showEmojis) var showEmojis
@@ -156,6 +163,27 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                Picker(AppL10n.text("Language"), selection: $appLanguageRaw) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.displayName).tag(language.rawValue)
+                    }
+                }
+                .onChange(of: appLanguageRaw) { _, newValue in
+                    guard let language = AppLanguage(rawValue: newValue) else { return }
+                    AppL10n.setLanguage(language)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        ApplicationRelauncher.restart()
+                    }
+                }
+
+                Text(AppL10n.text("Changing the language restarts the app automatically."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(AppL10n.text("Language"))
+            }
+
             Section {
                 Toggle(isOn: Binding(
                     get: { Defaults[.menubarIcon] },

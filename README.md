@@ -60,47 +60,41 @@ Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch th
 
 ### Option 1: Download and Install Manually
 
-<a href="https://github.com/TheBoredTeam/boring.notch/releases/latest/download/boringNotch.dmg" target="_self"><img width="200" src="https://github.com/user-attachments/assets/e3179be1-8416-4b8a-b417-743e1ecc67d6" alt="Download for macOS" /></a>
+<a href="https://github.com/Qiushi0919/boring-notch-focus/releases/latest/download/Boring-Notch-Focus.dmg" target="_self"><img width="200" src="https://github.com/user-attachments/assets/e3179be1-8416-4b8a-b417-743e1ecc67d6" alt="Download Boring Notch Focus for macOS" /></a>
 
-Once downloaded, open the `.dmg` and move **Boring Notch** to your `/Applications` folder.
+Once downloaded, open the `.dmg` and move **Boring Notch Focus** to your `/Applications` folder. The first launch starts with language selection and a reusable Permission Center.
 
 > [!IMPORTANT]
-> We don't have an Apple Developer account (yet 👀), so macOS will warn you that Boring Notch is from an unidentified developer on first launch. This is expected behavior.
+> This build is signed for development but is not notarized with a paid Developer ID, so macOS may warn you that it cannot verify Boring Notch Focus on first launch. This is expected behavior.
 >
 > You'll need to bypass this before the app will open. You only need to do this once. Use one of the methods below.
 
 ---
 
-#### Recommended: Terminal (Always Works)
+#### Recommended: System Settings
 
-This is the quickest and easiest method. It only requires a single command and works consistently for all users. System Settings can sometimes fail and won't work for non-admin users.
+1. Try to open the app, then dismiss the security warning.
+2. Open **System Settings** > **Privacy & Security**.
+3. Scroll to the security message for Boring Notch Focus and click **Open Anyway**.
+4. Confirm if prompted.
 
-After moving Boring Notch to your Applications folder, run:
+---
+
+#### Alternative: Terminal
+
+Advanced users can remove the quarantine attribute after moving the app to Applications:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/boringNotch.app
+xattr -dr com.apple.quarantine "/Applications/Boring Notch Focus.app"
 ```
 
 Then open the app normally.
 
 ---
 
-#### Alternative: System Settings
-
-> [!NOTE]
-> This method doesn't work for all users. If this doesn't work, use the Terminal method above.
-
-1. Try to open the app — you'll see a security warning.
-2. Click **OK** to dismiss it.
-3. Open **System Settings** > **Privacy & Security**.
-4. Scroll to the bottom and click **Open Anyway** next to the Boring Notch warning.
-5. Confirm if prompted.
-
----
-
 ### Option 2: Install via Homebrew
 
-You can also install using [Homebrew](https://brew.sh). The Homebrew installation automatically bypasses the macOS security warning described above.
+Homebrew currently installs the upstream official Boring Notch, not Boring Notch Focus:
 
 ```bash
 brew install --cask TheBoredTeam/boring-notch/boring-notch

@@ -8,10 +8,70 @@
 import SwiftUI
 import Defaults
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    static let storageKey = "appLanguage"
+
+    case system
+    case simplifiedChinese = "zh-Hans"
+    case english = "en"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .system:
+            return AppL10n.text("Follow System")
+        case .simplifiedChinese:
+            return "简体中文"
+        case .english:
+            return "English"
+        }
+    }
+
+    var languageIdentifiers: [String]? {
+        switch self {
+        case .system:
+            return nil
+        case .simplifiedChinese:
+            return ["zh-Hans"]
+        case .english:
+            return ["en"]
+        }
+    }
+}
+
 enum AppL10n {
+    static var selectedLanguage: AppLanguage {
+        guard
+            let rawValue = UserDefaults.standard.string(forKey: AppLanguage.storageKey),
+            let language = AppLanguage(rawValue: rawValue)
+        else {
+            return .system
+        }
+        return language
+    }
+
     private static var usesSimplifiedChinese: Bool {
+        switch selectedLanguage {
+        case .simplifiedChinese:
+            return true
+        case .english:
+            return false
+        case .system:
+            break
+        }
         guard let language = Locale.preferredLanguages.first?.lowercased() else { return false }
         return language.hasPrefix("zh-hans") || language.hasPrefix("zh-cn")
+    }
+
+    static func setLanguage(_ language: AppLanguage) {
+        UserDefaults.standard.set(language.rawValue, forKey: AppLanguage.storageKey)
+        if let identifiers = language.languageIdentifiers {
+            UserDefaults.standard.set(identifiers, forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        }
+        UserDefaults.standard.synchronize()
     }
 
     private static let simplifiedChinese: [String: String] = [
@@ -27,6 +87,7 @@ enum AppL10n {
         "Shortcuts": "快捷键",
         "Advanced": "高级",
         "About": "关于",
+        "Permissions": "权限中心",
         "Settings": "设置",
         "Restart Boring Notch Focus": "重新启动 Boring Notch Focus",
         "Quit": "退出",
@@ -58,6 +119,52 @@ enum AppL10n {
         "Enable haptic feedback": "启用触觉反馈",
         "Remember last tab": "记住上次打开的标签页",
         "Hover delay": "悬停延迟",
+        "Language": "语言",
+        "Follow System": "跟随系统",
+        "Changing the language restarts the app automatically.": "切换语言后，应用会自动重新启动。",
+
+        // First launch and permissions
+        "Welcome": "欢迎",
+        "Get started": "开始设置",
+        "Choose your language": "选择语言",
+        "You can change this later in Settings.": "稍后可以在设置中更改。",
+        "Continue": "继续",
+        "Permission Center": "权限中心",
+        "Grant only the permissions needed by the features you use. You can change them later in System Settings.": "只需授予你所使用功能需要的权限，之后可以随时在系统设置中更改。",
+        "Refresh Status": "重新检测",
+        "Request Access": "请求权限",
+        "Open Settings": "打开设置",
+        "Allowed": "已允许",
+        "Not Requested": "未请求",
+        "Not Allowed": "未允许",
+        "Requested When Used": "使用时询问",
+        "Calendar Access": "日历权限",
+        "Shows your upcoming events in the calendar area.": "在日历区域显示即将开始的日程。",
+        "Reminders Access": "提醒事项权限",
+        "Shows scheduled reminders together with calendar events.": "将有日期的提醒事项与日历日程一起显示。",
+        "QQ Music Controls": "QQ 音乐控制",
+        "Accessibility access lets the heart button control QQ Music.": "辅助功能权限用于让红心按钮控制 QQ 音乐收藏。",
+        "System HUD Controls": "系统浮窗控制",
+        "The helper needs Accessibility access only when replacing the macOS volume and brightness HUD.": "仅在替换 macOS 音量和亮度浮窗时，辅助程序需要辅助功能权限。",
+        "Notifications": "通知",
+        "Shows an alert when a focus or break session ends.": "在专注或休息阶段结束时发送提醒。",
+        "Camera Access": "相机权限",
+        "Optional. Used only for the notch mirror preview.": "可选，仅用于灵动岛镜子预览。",
+        "Music Automation": "音乐自动化",
+        "macOS asks when the app first controls Apple Music or Spotify. QQ Music uses Accessibility instead.": "首次控制 Apple Music 或 Spotify 时，macOS 会询问；QQ 音乐使用辅助功能权限。",
+        "If macOS blocks the app before it opens, go to System Settings → Privacy & Security and choose Open Anyway.": "如果 macOS 在应用打开前进行拦截，请前往“系统设置 → 隐私与安全性”，选择“仍要打开”。",
+        "Choose a Music Source": "选择音乐来源",
+        "Select the music source you want to use. You can change this later in the app settings.": "选择要使用的音乐来源，稍后可以在应用设置中更改。",
+        "Works with most media apps, including browsers, to detect what's playing. Note: This may be removed in a future macOS version.": "可识别大多数音乐应用和浏览器中正在播放的内容。此接口未来可能被 macOS 移除。",
+        "Connects directly to the Spotify app.": "直接连接 Spotify 应用。",
+        "Connects directly to the Apple Music app.": "直接连接 Apple Music 应用。",
+        "Requires a third-party client with API plugin enabled.": "需要启用了 API 插件的第三方客户端。",
+        "You're All Set!": "设置完成！",
+        "You can now enjoy the app. If you want to tweak things further, you can always visit the settings.": "现在可以开始使用了，之后仍可随时进入设置进行调整。",
+        "Customize in Settings": "进入设置继续调整",
+        "Finish": "完成",
+        "Not Now": "暂不",
+        "Allow Access": "允许访问",
 
         // Focus timer
         "Home": "主页",
