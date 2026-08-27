@@ -33,11 +33,15 @@
 
 Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch the star of the show! Say goodbye to boring status bars: with Boring Notch, your notch transforms into a dynamic music control center, complete with a vibrant visualizer and all the essential music controls you need. But that’s just the start! Boring Notch also offers calendar integration, a handy file shelf with AirDrop support, a complete MacOS HUD replacement and more!
 
+## Boring Notch Focus 演示 / Demo
+
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/2d5f69c1-6e7b-4bc2-a6f1-bb9e27cf88a8" alt="Demo GIF" />
+  <a href="https://qiushi0919.github.io/boring-notch-focus/#demo"><strong>▶ 在线观看 80 秒新版功能演示 / Watch the 80-second feature demo</strong></a>
 </p>
 
-<!--https://github.com/user-attachments/assets/19b87973-4b3a-4853-b532-7e82d1d6b040-->
+这段临时演示展示了灵动岛展开、音乐控制、桌面交互和文件岛操作。视频采用适合网页加载的 720p MP4；[也可以直接打开视频文件](https://raw.githubusercontent.com/Qiushi0919/boring-notch-focus/main/docs/media/boring-notch-focus-demo.mp4)。
+
+This temporary demo shows the expanded notch, music controls, desktop interaction, and the file shelf. It is provided as a web-friendly 720p MP4; [open the video file directly](https://raw.githubusercontent.com/Qiushi0919/boring-notch-focus/main/docs/media/boring-notch-focus-demo.mp4) if needed.
 ---
 <!--## Table of Contents
 - [Installation](#installation)
