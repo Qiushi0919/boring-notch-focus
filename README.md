@@ -5,7 +5,7 @@
 > was first published in August 2026 and is not an official Boring Notch build.
 >
 > Download the current installer from
-> [Boring Notch Focus Releases](https://github.com/Qiushi0919/boring-notch-focus/releases/latest).
+> [Boring-Notch-Focus.dmg](https://github.com/Qiushi0919/boring-notch-focus/releases/latest/download/Boring-Notch-Focus.dmg).
 > After the first installation, later Focus releases are delivered by the
 > app's built-in Sparkle updater.
 
@@ -204,4 +204,3 @@ For a full list of licenses and attributions, please see the [Third-Party Licens
 
 - **SwiftUI**: For making us look like coding wizards.
 - **You**: For being awesome and checking out **boring.notch**!
-
