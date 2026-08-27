@@ -35,13 +35,27 @@ Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch th
 
 ## Boring Notch Focus 演示 / Demo
 
+### 音乐岛 / Music Island
+
 <p align="center">
-  <img src="docs/media/boring-notch-focus-demo-release.gif" alt="Boring Notch Focus 80-second feature demo" width="960" />
+  <img src="docs/media/demo-music.gif" alt="Boring Notch Focus music controls demo" width="960" />
 </p>
 
-这段临时演示会在页面中直接播放，展示灵动岛展开、音乐控制、桌面交互和文件岛操作。
+### 文件岛 / File Shelf
 
-This temporary demo plays directly on the page and shows the expanded notch, music controls, desktop interaction, and the file shelf.
+<p align="center">
+  <img src="docs/media/demo-files.gif" alt="Boring Notch Focus file shelf demo" width="960" />
+</p>
+
+### 番茄钟 / Pomodoro
+
+<p align="center">
+  <img src="docs/media/demo-pomodoro.gif" alt="Boring Notch Focus Pomodoro demo" width="960" />
+</p>
+
+三个演示会在页面中直接播放，分别展示音乐控制、文件管理和刘海番茄钟。
+
+These demos play directly on the page and show music controls, file management, and the notch Pomodoro timer.
 ---
 <!--## Table of Contents
 - [Installation](#installation)
