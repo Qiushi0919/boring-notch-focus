@@ -36,12 +36,12 @@ Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch th
 ## Boring Notch Focus 演示 / Demo
 
 <p align="center">
-  <a href="https://qiushi0919.github.io/boring-notch-focus/#demo"><strong>▶ 在线观看 80 秒新版功能演示 / Watch the 80-second feature demo</strong></a>
+  <img src="docs/media/boring-notch-focus-demo.gif" alt="Boring Notch Focus 80-second feature demo" width="960" />
 </p>
 
-这段临时演示展示了灵动岛展开、音乐控制、桌面交互和文件岛操作。视频采用适合网页加载的 720p MP4；[也可以直接打开视频文件](https://raw.githubusercontent.com/Qiushi0919/boring-notch-focus/main/docs/media/boring-notch-focus-demo.mp4)。
+这段临时演示会在页面中直接播放，展示灵动岛展开、音乐控制、桌面交互和文件岛操作。
 
-This temporary demo shows the expanded notch, music controls, desktop interaction, and the file shelf. It is provided as a web-friendly 720p MP4; [open the video file directly](https://raw.githubusercontent.com/Qiushi0919/boring-notch-focus/main/docs/media/boring-notch-focus-demo.mp4) if needed.
+This temporary demo plays directly on the page and shows the expanded notch, music controls, desktop interaction, and the file shelf.
 ---
 <!--## Table of Contents
 - [Installation](#installation)
