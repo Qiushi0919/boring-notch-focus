@@ -36,7 +36,7 @@ Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch th
 ## Boring Notch Focus 演示 / Demo
 
 <p align="center">
-  <img src="docs/media/boring-notch-focus-demo.gif" alt="Boring Notch Focus 80-second feature demo" width="960" />
+  <img src="docs/media/boring-notch-focus-demo-release.gif" alt="Boring Notch Focus 80-second feature demo" width="960" />
 </p>
 
 这段临时演示会在页面中直接播放，展示灵动岛展开、音乐控制、桌面交互和文件岛操作。
