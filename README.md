@@ -1,3 +1,14 @@
+> [!IMPORTANT]
+> **Boring Notch Focus** is a modified GPLv3 fork maintained by
+> [Qiushi0919](https://github.com/Qiushi0919). It adds a focus timer and
+> customized music, calendar, shelf, and Chinese-language behavior. The fork
+> was first published in August 2026 and is not an official Boring Notch build.
+>
+> Download the current installer from
+> [Boring Notch Focus Releases](https://github.com/Qiushi0919/boring-notch-focus/releases/latest).
+> After the first installation, later Focus releases are delivered by the
+> app's built-in Sparkle updater.
+
 <h1 align="center">
   <br>
   <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>
@@ -193,5 +204,4 @@ For a full list of licenses and attributions, please see the [Third-Party Licens
 
 - **SwiftUI**: For making us look like coding wizards.
 - **You**: For being awesome and checking out **boring.notch**!
-
 

@@ -30,7 +30,7 @@ struct ShelfItemView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             if !shouldHideDuringDrag {
                 VStack(alignment: .center, spacing: 2) {
                     iconView
@@ -56,6 +56,21 @@ struct ShelfItemView: View {
                         viewModel.handleClick(event: event, view: nsview)
                     }
                 )
+
+                Button {
+                    selection.toggle(item)
+                } label: {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(
+                            isSelected ? Color.accentColor : Color.white.opacity(0.65)
+                        )
+                        .background(.black.opacity(0.55), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help(AppL10n.text(isSelected ? "Deselect item" : "Select item"))
+                .padding(.top, 6)
+                .padding(.trailing, 5)
             } else {
                 Color.clear
                     .frame(width: 105)
@@ -89,7 +104,6 @@ struct ShelfItemView: View {
                 cachedPreviewImage = await renderDragPreview()
             }
         }
-        .quickLookPresenter(using: quickLookService)
     }
 
     // MARK: - View Components

@@ -5,7 +5,9 @@
 //  Created by Harsh Vardhan  Goswami  on 03/08/24.
 //
 import AppKit
+import ApplicationServices
 import Combine
+import CoreAudio
 import Defaults
 import SwiftUI
 
@@ -14,12 +16,25 @@ let defaultImage: NSImage = .init(
     accessibilityDescription: "Album Art"
 )!
 
+struct PlaybackSourceSnapshot: Identifiable {
+    var id: String { bundleIdentifier }
+    let bundleIdentifier: String
+    var title: String
+    var subtitle: String
+    var artwork: NSImage
+    var usesAppIconAsArtwork: Bool
+    var isPlaying: Bool
+    var lastSeen: Date
+}
+
 class MusicManager: ObservableObject {
     // MARK: - Properties
     static let shared = MusicManager()
     private var cancellables = Set<AnyCancellable>()
     private var controllerCancellables = Set<AnyCancellable>()
     private var debounceIdleTask: Task<Void, Never>?
+    private var playbackSourceRefreshTask: Task<Void, Never>?
+    private let qqMusicBundleIdentifier = "com.tencent.QQMusicMac"
 
     // Helper to check if macOS has removed support for NowPlayingController
     public private(set) var isNowPlayingDeprecated: Bool = false
@@ -53,6 +68,7 @@ class MusicManager: ObservableObject {
     @Published var syncedLyrics: [(time: Double, text: String)] = []
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
+    @Published private(set) var playbackSources: [PlaybackSourceSnapshot] = []
 
     private var artworkData: Data? = nil
 
@@ -77,6 +93,31 @@ class MusicManager: ObservableObject {
             }
             .store(in: &cancellables)
 
+        NSWorkspace.shared.notificationCenter.publisher(
+            for: NSWorkspace.didTerminateApplicationNotification
+        )
+        .compactMap { notification in
+            (notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication)?.bundleIdentifier
+        }
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] terminatedBundleIdentifier in
+            self?.playbackSources.removeAll {
+                $0.bundleIdentifier == terminatedBundleIdentifier
+            }
+        }
+        .store(in: &cancellables)
+
+        playbackSourceRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { break }
+                await MainActor.run {
+                    self?.pruneInactivePlaybackSources()
+                }
+            }
+        }
+
         // Initialize deprecation check asynchronously
         Task { @MainActor in
             do {
@@ -98,6 +139,7 @@ class MusicManager: ObservableObject {
     
     public func destroy() {
         debounceIdleTask?.cancel()
+        playbackSourceRefreshTask?.cancel()
         cancellables.removeAll()
         controllerCancellables.removeAll()
         flipWorkItem?.cancel()
@@ -181,6 +223,13 @@ class MusicManager: ObservableObject {
     // MARK: - Update Methods
     @MainActor
     private func updateFromPlaybackState(_ state: PlaybackState) {
+        updatePlaybackSources(with: state)
+
+        // Controller capabilities can change when the active Now Playing app changes.
+        // Reading this only once during controller creation leaves QQ Music disabled.
+        self.canFavoriteTrack = (activeController?.supportsFavorite ?? false)
+            || state.bundleIdentifier == "com.tencent.QQMusicMac"
+
         // Check for playback state changes (playing/paused)
         if state.isPlaying != self.isPlaying {
             NSLog("Playback state changed: \(state.isPlaying ? "Playing" : "Paused")")
@@ -291,8 +340,566 @@ class MusicManager: ObservableObject {
         self.timestampDate = state.lastUpdated
     }
 
+    @MainActor
+    private func updatePlaybackSources(with state: PlaybackState) {
+        let bundleID = state.bundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !bundleID.isEmpty, !title.isEmpty, title != "I'm Handsome" else { return }
+
+        let existingIndex = playbackSources.firstIndex {
+            $0.bundleIdentifier == bundleID
+        }
+        let trackChanged = existingIndex.map {
+            playbackSources[$0].title != title
+        } ?? true
+
+        let resolvedArtwork: NSImage
+        let usesAppIcon: Bool
+        if let artworkData = state.artwork, let artworkImage = NSImage(data: artworkData) {
+            resolvedArtwork = artworkImage
+            usesAppIcon = false
+        } else if let existingIndex, !trackChanged {
+            resolvedArtwork = playbackSources[existingIndex].artwork
+            usesAppIcon = playbackSources[existingIndex].usesAppIconAsArtwork
+        } else if let icon = AppIconAsNSImage(for: bundleID) {
+            resolvedArtwork = icon
+            usesAppIcon = true
+        } else {
+            resolvedArtwork = defaultImage
+            usesAppIcon = true
+        }
+
+        let artist = state.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        let albumName = state.album.trimmingCharacters(in: .whitespacesAndNewlines)
+        let applicationName = NSRunningApplication.runningApplications(
+            withBundleIdentifier: bundleID
+        ).first?.localizedName ?? bundleID
+        let subtitle = !artist.isEmpty ? artist : (!albumName.isEmpty ? albumName : applicationName)
+
+        let snapshot = PlaybackSourceSnapshot(
+            bundleIdentifier: bundleID,
+            title: title,
+            subtitle: subtitle,
+            artwork: resolvedArtwork,
+            usesAppIconAsArtwork: usesAppIcon,
+            isPlaying: state.isPlaying,
+            lastSeen: Date()
+        )
+
+        if let existingIndex {
+            playbackSources[existingIndex] = snapshot
+        } else {
+            playbackSources.append(snapshot)
+        }
+
+        let runningBundleIdentifiers = Set(
+            NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier)
+        )
+        playbackSources.removeAll {
+            !runningBundleIdentifiers.contains($0.bundleIdentifier)
+        }
+        playbackSources.sort { lhs, rhs in
+            let lhsIsQQMusic = lhs.bundleIdentifier == qqMusicBundleIdentifier
+            let rhsIsQQMusic = rhs.bundleIdentifier == qqMusicBundleIdentifier
+            if lhsIsQQMusic != rhsIsQQMusic { return lhsIsQQMusic }
+            if lhs.bundleIdentifier == bundleID { return true }
+            if rhs.bundleIdentifier == bundleID { return false }
+            if lhs.isPlaying != rhs.isPlaying { return lhs.isPlaying }
+            return lhs.lastSeen > rhs.lastSeen
+        }
+        if playbackSources.count > 4 {
+            playbackSources = Array(playbackSources.prefix(4))
+        }
+    }
+
+    var hasMultiplePlaybackSources: Bool {
+        playbackSources.count >= 2
+    }
+
+    @MainActor
+    private func pruneInactivePlaybackSources() {
+        let now = Date()
+        let activeBundleIdentifier = bundleIdentifier
+        playbackSources.removeAll { source in
+            guard NSWorkspace.shared.runningApplications.contains(where: {
+                $0.bundleIdentifier == source.bundleIdentifier
+            }) else { return true }
+
+            // QQ Music is the preferred player. Keep its last known snapshot
+            // while the app is open, even when paused, so it remains the first
+            // row and becomes the single-player view after other audio stops.
+            if source.bundleIdentifier == qqMusicBundleIdentifier {
+                return false
+            }
+
+            if source.bundleIdentifier == activeBundleIdentifier {
+                return false
+            }
+
+            // Keep a newly discovered source briefly so the two-row transition
+            // does not flicker. Afterwards, retain it only while that process is
+            // still producing audio. When it stops, the UI falls back to one row.
+            let recentlySeen = now.timeIntervalSince(source.lastSeen) < 8
+            return !recentlySeen && !isAudioOutputRunning(
+                bundleIdentifier: source.bundleIdentifier
+            )
+        }
+    }
+
+    private func isAudioOutputRunning(bundleIdentifier: String) -> Bool {
+        guard let application = NSRunningApplication.runningApplications(
+            withBundleIdentifier: bundleIdentifier
+        ).first else { return false }
+
+        var pid = application.processIdentifier
+        var processObjectID = kAudioObjectUnknown
+        var processObjectSize = UInt32(MemoryLayout<AudioObjectID>.size)
+        var translateAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        let translateStatus = withUnsafePointer(to: &pid) { pidPointer in
+            AudioObjectGetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject),
+                &translateAddress,
+                UInt32(MemoryLayout<pid_t>.size),
+                pidPointer,
+                &processObjectSize,
+                &processObjectID
+            )
+        }
+        guard translateStatus == noErr, processObjectID != kAudioObjectUnknown else {
+            return false
+        }
+
+        var isRunningOutput: UInt32 = 0
+        var runningOutputSize = UInt32(MemoryLayout<UInt32>.size)
+        var runningOutputAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyIsRunningOutput,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(processObjectID, &runningOutputAddress) else {
+            return false
+        }
+        let status = AudioObjectGetPropertyData(
+            processObjectID,
+            &runningOutputAddress,
+            0,
+            nil,
+            &runningOutputSize,
+            &isRunningOutput
+        )
+        return status == noErr && isRunningOutput != 0
+    }
+
+    func openMusicApp(bundleIdentifier: String) {
+        guard let appURL = NSWorkspace.shared.urlForApplication(
+            withBundleIdentifier: bundleIdentifier
+        ) else { return }
+        NSWorkspace.shared.openApplication(
+            at: appURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
+    }
+
+    func togglePlayback(for bundleIdentifier: String) {
+        let sourceIsPlaying = playbackSources.first(where: {
+            $0.bundleIdentifier == bundleIdentifier
+        })?.isPlaying
+
+        // QQ Music is pinned to the first row, so its UI position is no longer
+        // evidence that it is also macOS's current Now Playing client. Always
+        // use QQ Music's own app-scoped Accessibility command and never the
+        // global controller, even when the bundle identifiers happen to match.
+        if bundleIdentifier != qqMusicBundleIdentifier,
+           bundleIdentifier == self.bundleIdentifier {
+            togglePlay()
+            updateCachedPlaybackState(for: bundleIdentifier, toggled: true)
+            return
+        }
+
+        Task { [weak self] in
+            guard let self,
+                  await self.runSourceCommand(
+                      for: bundleIdentifier,
+                      kind: .togglePlay,
+                      sourceIsPlaying: sourceIsPlaying
+                  )
+            else { return }
+
+            await MainActor.run {
+                self.updateCachedPlaybackState(
+                    for: bundleIdentifier,
+                    toggled: true
+                )
+            }
+        }
+    }
+
+    func nextTrack(for bundleIdentifier: String) {
+        if bundleIdentifier != qqMusicBundleIdentifier,
+           bundleIdentifier == self.bundleIdentifier {
+            nextTrack()
+            return
+        }
+        Task { [weak self] in
+            guard let self else { return }
+            _ = await self.runSourceCommand(
+                for: bundleIdentifier,
+                kind: .nextTrack,
+                sourceIsPlaying: nil
+            )
+        }
+    }
+
+    @MainActor
+    private func updateCachedPlaybackState(for bundleIdentifier: String, toggled: Bool) {
+        guard toggled,
+              let index = playbackSources.firstIndex(where: {
+                  $0.bundleIdentifier == bundleIdentifier
+              })
+        else { return }
+        playbackSources[index].isPlaying.toggle()
+    }
+
+    private enum SourceCommand {
+        case togglePlay
+        case nextTrack
+    }
+
+    private func runSourceCommand(
+        for bundleIdentifier: String,
+        kind: SourceCommand,
+        sourceIsPlaying: Bool?
+    ) async -> Bool {
+        if bundleIdentifier == "com.apple.Music" {
+            let command = kind == .togglePlay ? "playpause" : "next track"
+            do {
+                try await AppleScriptHelper.executeVoid(
+                    "tell application \"Music\" to \(command)"
+                )
+                return true
+            } catch {
+                NSLog("Apple Music source command failed: %@", error.localizedDescription)
+                return false
+            }
+        }
+
+        if bundleIdentifier == "com.spotify.client" {
+            let command = kind == .togglePlay ? "playpause" : "next track"
+            do {
+                try await AppleScriptHelper.executeVoid(
+                    "tell application \"Spotify\" to \(command)"
+                )
+                return true
+            } catch {
+                NSLog("Spotify source command failed: %@", error.localizedDescription)
+                return false
+            }
+        }
+
+        // Never fall back to a global media command for a non-current row: on
+        // macOS it is redirected to the system's current Now Playing client and
+        // can pause QQ Music instead. Accessibility keeps the command inside the
+        // intended app. If no matching control is exposed, safely do nothing.
+        return performAccessibilitySourceCommand(
+            bundleIdentifier: bundleIdentifier,
+            kind: kind,
+            sourceIsPlaying: sourceIsPlaying
+        )
+    }
+
+    private func performAccessibilitySourceCommand(
+        bundleIdentifier: String,
+        kind: SourceCommand,
+        sourceIsPlaying: Bool?
+    ) -> Bool {
+        guard AXIsProcessTrusted(),
+              let app = NSRunningApplication.runningApplications(
+                  withBundleIdentifier: bundleIdentifier
+              ).first
+        else { return false }
+
+        let applicationElement = AXUIElementCreateApplication(app.processIdentifier)
+        let acceptedTitles: [String]
+        if bundleIdentifier == qqMusicBundleIdentifier, kind == .togglePlay {
+            // QQ Music stays pinned after another source becomes the system Now
+            // Playing client, so the row's cached state can legitimately be
+            // stale. Its native menu item is an exact, app-scoped action; accept
+            // both possible titles and let QQ Music perform the actual toggle.
+            acceptedTitles = [
+                "播放", "暂停", "播放/暂停", "播放或暂停",
+                "Play", "Pause", "Play/Pause", "Play or Pause"
+            ]
+        } else {
+            acceptedTitles = accessibilityActionTitles(
+                for: kind,
+                sourceIsPlaying: sourceIsPlaying
+            )
+        }
+
+        // Native players such as QQ Music commonly expose their commands as
+        // menu items. This path also works for a browser if it supplies a media
+        // command in its own menu.
+        var menuBarValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            applicationElement,
+            kAXMenuBarAttribute as CFString,
+            &menuBarValue
+        ) == .success,
+           let menuBarValue,
+           CFGetTypeID(menuBarValue) == AXUIElementGetTypeID()
+        {
+            let menuBar = unsafeBitCast(menuBarValue, to: AXUIElement.self)
+            if let menuItem = findAccessibilityMenuItem(
+                in: menuBar,
+                acceptedTitles: acceptedTitles,
+                depth: 0
+            ), AXUIElementPerformAction(
+                menuItem,
+                kAXPressAction as CFString
+            ) == .success {
+                NSLog("Accessibility menu command succeeded for %@", bundleIdentifier)
+                return true
+            }
+        }
+
+        // Chromium/Electron apps normally expose the visible page/player
+        // controls as AX buttons rather than menu items. Search only this app's
+        // windows and require a state-specific label (Play versus Pause).
+        var roots: [AXUIElement] = []
+        var focusedWindowValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            applicationElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+           let focusedWindowValue,
+           CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        {
+            roots.append(unsafeBitCast(focusedWindowValue, to: AXUIElement.self))
+        }
+
+        var windowsValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            applicationElement,
+            kAXWindowsAttribute as CFString,
+            &windowsValue
+        ) == .success,
+           let windows = windowsValue as? [AXUIElement]
+        {
+            roots.append(contentsOf: windows)
+        }
+
+        var remainingNodes = 4_000
+        for root in roots {
+            if performMatchingAccessibilityAction(
+                in: root,
+                acceptedTitles: acceptedTitles,
+                depth: 0,
+                remainingNodes: &remainingNodes
+            ) {
+                NSLog("Accessibility window command succeeded for %@", bundleIdentifier)
+                return true
+            }
+            if remainingNodes <= 0 { break }
+        }
+
+        NSLog("No safe app-specific media control found for %@", bundleIdentifier)
+        return false
+    }
+
+    private func accessibilityActionTitles(
+        for kind: SourceCommand,
+        sourceIsPlaying: Bool?
+    ) -> [String] {
+        switch kind {
+        case .togglePlay:
+            let toggleTitles = [
+                "播放/暂停", "播放或暂停", "Play/Pause", "Play or Pause"
+            ]
+            if sourceIsPlaying == true {
+                return [
+                    "暂停", "暂停播放", "点击暂停", "Pause", "Pause video"
+                ] + toggleTitles
+            }
+            if sourceIsPlaying == false {
+                return [
+                    "播放", "继续播放", "播放视频", "点击播放", "Play", "Play video"
+                ] + toggleTitles
+            }
+            return toggleTitles
+        case .nextTrack:
+            return [
+                "下一首", "下一曲", "下一个", "下一条视频",
+                "Next", "Next Track", "Next video"
+            ]
+        }
+    }
+
+    private func performMatchingAccessibilityAction(
+        in element: AXUIElement,
+        acceptedTitles: [String],
+        depth: Int,
+        remainingNodes: inout Int
+    ) -> Bool {
+        guard depth < 24, remainingNodes > 0 else { return false }
+        remainingNodes -= 1
+
+        var roleValue: CFTypeRef?
+        AXUIElementCopyAttributeValue(
+            element,
+            kAXRoleAttribute as CFString,
+            &roleValue
+        )
+        let role = roleValue as? String
+        let actionableRoles = [
+            kAXButtonRole as String,
+            kAXMenuItemRole as String,
+            "AXLink"
+        ]
+
+        if let role, actionableRoles.contains(role) {
+            var enabledValue: CFTypeRef?
+            AXUIElementCopyAttributeValue(
+                element,
+                kAXEnabledAttribute as CFString,
+                &enabledValue
+            )
+            let isEnabled = (enabledValue as? Bool) ?? true
+            if isEnabled {
+                let labelAttributes = [
+                    kAXTitleAttribute,
+                    kAXDescriptionAttribute,
+                    kAXHelpAttribute,
+                    kAXValueAttribute
+                ]
+                let labels = labelAttributes.compactMap { attribute -> String? in
+                    var value: CFTypeRef?
+                    guard AXUIElementCopyAttributeValue(
+                        element,
+                        attribute as CFString,
+                        &value
+                    ) == .success else { return nil }
+                    return value as? String
+                }
+
+                if labels.contains(where: {
+                    accessibilityLabel($0, matchesAny: acceptedTitles)
+                }), AXUIElementPerformAction(
+                    element,
+                    kAXPressAction as CFString
+                ) == .success {
+                    return true
+                }
+            }
+        }
+
+        var childrenValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXChildrenAttribute as CFString,
+            &childrenValue
+        ) == .success,
+              let children = childrenValue as? [AXUIElement]
+        else { return false }
+
+        for child in children {
+            if performMatchingAccessibilityAction(
+                in: child,
+                acceptedTitles: acceptedTitles,
+                depth: depth + 1,
+                remainingNodes: &remainingNodes
+            ) {
+                return true
+            }
+            if remainingNodes <= 0 { break }
+        }
+        return false
+    }
+
+    private func accessibilityLabel(
+        _ label: String,
+        matchesAny acceptedTitles: [String]
+    ) -> Bool {
+        let normalized = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return false }
+
+        return acceptedTitles.contains { acceptedTitle in
+            if normalized.caseInsensitiveCompare(acceptedTitle) == .orderedSame {
+                return true
+            }
+
+            // Web players often append their shortcut, for example
+            // "Pause (k)" or "播放 (k)". Match that suffix without accepting
+            // unrelated controls such as playlists or playback-speed menus.
+            let lowered = normalized.lowercased()
+            let accepted = acceptedTitle.lowercased()
+            return lowered.hasPrefix(accepted + " (")
+                || lowered.hasPrefix(accepted + "（")
+        }
+    }
+
+    private func findAccessibilityMenuItem(
+        in element: AXUIElement,
+        acceptedTitles: [String],
+        depth: Int
+    ) -> AXUIElement? {
+        guard depth < 10 else { return nil }
+
+        var roleValue: CFTypeRef?
+        var titleValue: CFTypeRef?
+        AXUIElementCopyAttributeValue(
+            element,
+            kAXRoleAttribute as CFString,
+            &roleValue
+        )
+        AXUIElementCopyAttributeValue(
+            element,
+            kAXTitleAttribute as CFString,
+            &titleValue
+        )
+
+        if let role = roleValue as? String,
+           role == (kAXMenuItemRole as String),
+           let title = titleValue as? String
+        {
+            let normalizedTitle = title.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            if acceptedTitles.contains(where: {
+                normalizedTitle.caseInsensitiveCompare($0) == .orderedSame
+            }) {
+                return element
+            }
+        }
+
+        var childrenValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXChildrenAttribute as CFString,
+            &childrenValue
+        ) == .success,
+              let children = childrenValue as? [AXUIElement]
+        else { return nil }
+
+        for child in children {
+            if let match = findAccessibilityMenuItem(
+                in: child,
+                acceptedTitles: acceptedTitles,
+                depth: depth + 1
+            ) {
+                return match
+            }
+        }
+        return nil
+    }
+
     func toggleFavoriteTrack() {
-        guard canFavoriteTrack else { return }
+        guard canFavoriteTrack || bundleIdentifier == "com.tencent.QQMusicMac" else { return }
         // Toggle based on current state
         setFavorite(!isFavoriteTrack)
     }
@@ -585,7 +1192,7 @@ class MusicManager: ObservableObject {
     private func updateSneakPeek() {
         if isPlaying && Defaults[.enableSneakPeek] {
             if Defaults[.sneakPeekStyles] == .standard {
-                coordinator.toggleSneakPeek(status: true, type: .music)
+                coordinator.toggleSneakPeek(status: true, type: .music, duration: 3.0)
             } else {
                 coordinator.toggleExpandingView(status: true, type: .music)
             }

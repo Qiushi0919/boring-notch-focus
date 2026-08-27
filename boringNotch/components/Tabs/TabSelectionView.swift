@@ -5,23 +5,34 @@
 //  Created by Hugo Persson on 2024-08-25.
 //
 
+import Defaults
 import SwiftUI
 
 struct TabModel: Identifiable {
-    let id = UUID()
     let label: String
     let icon: String
     let view: NotchViews
-}
 
-let tabs = [
-    TabModel(label: "Home", icon: "house.fill", view: .home),
-    TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
-]
+    var id: String { label }
+}
 
 struct TabSelectionView: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
+    @Default(.boringShelf) private var boringShelf
+    @Default(.pomodoroEnabled) private var pomodoroEnabled
     @Namespace var animation
+
+    private var tabs: [TabModel] {
+        var result = [TabModel(label: AppL10n.text("Home"), icon: "house.fill", view: .home)]
+        if boringShelf {
+            result.append(TabModel(label: AppL10n.text("Shelf"), icon: "tray.fill", view: .shelf))
+        }
+        if pomodoroEnabled {
+            result.append(TabModel(label: AppL10n.text("Focus Timer"), icon: "timer", view: .pomodoro))
+        }
+        return result
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             ForEach(tabs) { tab in

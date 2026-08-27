@@ -24,6 +24,94 @@ struct MusicPlayerView: View {
     }
 }
 
+struct MultiplePlaybackSourcesView: View {
+    @ObservedObject private var musicManager = MusicManager.shared
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(musicManager.playbackSources.prefix(2).enumerated()), id: \.element.id) {
+                index, source in
+                playbackRow(source)
+                if index == 0 {
+                    Divider()
+                        .overlay(Color.white.opacity(0.12))
+                        .padding(.horizontal, 8)
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func playbackRow(_ source: PlaybackSourceSnapshot) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                musicManager.openMusicApp(bundleIdentifier: source.bundleIdentifier)
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    Image(nsImage: source.artwork)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 54, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    if !source.usesAppIconAsArtwork {
+                        AppIcon(for: source.bundleIdentifier)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 20, height: 20)
+                            .background(Circle().fill(.white))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 1.5))
+                            .offset(x: 4, y: 4)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(source.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(source.subtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.gray)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                musicManager.togglePlayback(for: source.bundleIdentifier)
+            } label: {
+                Image(systemName: source.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 42)
+            }
+            .buttonStyle(.plain)
+            .help(source.isPlaying ? AppL10n.text("Pause") : AppL10n.text("Play"))
+
+            Button {
+                musicManager.nextTrack(for: source.bundleIdentifier)
+            } label: {
+                Image(systemName: "forward.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(width: 30, height: 42)
+            }
+            .buttonStyle(.plain)
+            .help(AppL10n.text("Next Track"))
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 72)
+        .contentShape(Rectangle())
+    }
+}
+
 struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var vm: BoringViewModel
@@ -140,9 +228,33 @@ struct MusicControlsView: View {
 
     private func songInfo(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            MarqueeText(
-                $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
-                frameWidth: width)
+            HStack(spacing: 6) {
+                MarqueeText(
+                    $musicManager.songTitle,
+                    font: .headline,
+                    nsFont: .headline,
+                    textColor: .white,
+                    frameWidth: max(0, width - 28)
+                )
+
+                Button {
+                    musicManager.toggleFavoriteTrack()
+                } label: {
+                    Image(systemName: musicManager.isFavoriteTrack ? "heart.fill" : "heart")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.red)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canUseFavorite)
+                .opacity(canUseFavorite ? 1 : 0.3)
+                .help(
+                    AppL10n.text(
+                        musicManager.isFavoriteTrack
+                            ? "Remove from Favorites" : "Add to Favorites"
+                    )
+                )
+            }
             MarqueeText(
                 $musicManager.artistName,
                 font: .headline,
@@ -187,6 +299,11 @@ struct MusicControlsView: View {
                 }
             }
         }
+    }
+
+    private var canUseFavorite: Bool {
+        musicManager.canFavoriteTrack
+            || musicManager.bundleIdentifier == "com.tencent.QQMusicMac"
     }
 
     private var musicSlider: some View {
@@ -305,8 +422,8 @@ struct FavoriteControlButton: View {
         HoverButton(icon: iconName, iconColor: iconColor, scale: .medium) {
             MusicManager.shared.toggleFavoriteTrack()
         }
-        .disabled(!musicManager.canFavoriteTrack)
-        .opacity(musicManager.canFavoriteTrack ? 1 : 0.35)
+        .disabled(!canUseFavorite)
+        .opacity(canUseFavorite ? 1 : 0.35)
     }
 
     private var iconName: String {
@@ -315,6 +432,11 @@ struct FavoriteControlButton: View {
 
     private var iconColor: Color {
         musicManager.isFavoriteTrack ? .red : .primary
+    }
+
+    private var canUseFavorite: Bool {
+        musicManager.canFavoriteTrack
+            || musicManager.bundleIdentifier == "com.tencent.QQMusicMac"
     }
 }
 
@@ -423,6 +545,7 @@ struct NotchHomeView: View {
     @ObservedObject var webcamManager = WebcamManager.shared
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = BoringViewCoordinator.shared
+    @ObservedObject var musicManager = MusicManager.shared
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
@@ -440,6 +563,35 @@ struct NotchHomeView: View {
     }
 
     private var mainContent: some View {
+        Group {
+            if musicManager.hasMultiplePlaybackSources {
+                multiplePlaybackSourcesContent
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            } else {
+                standardMainContent
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: musicManager.hasMultiplePlaybackSources)
+        .blur(radius: vm.notchState == .closed ? 30 : 0)
+    }
+
+    private var multiplePlaybackSourcesContent: some View {
+        HStack(alignment: .top, spacing: 15) {
+            MultiplePlaybackSourcesView()
+
+            if Defaults[.showCalendar] {
+                CalendarView()
+                    .frame(width: 215)
+                    .onHover { isHovering in
+                        vm.isHoveringCalendar = isHovering
+                    }
+                    .environmentObject(vm)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private var standardMainContent: some View {
         HStack(alignment: .top, spacing: (shouldShowCamera && Defaults[.showCalendar]) ? 10 : 15) {
             MusicPlayerView(albumArtNamespace: albumArtNamespace)
 
@@ -462,7 +614,6 @@ struct NotchHomeView: View {
             }
         }
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
-        .blur(radius: vm.notchState == .closed ? 30 : 0)
     }
 }
 

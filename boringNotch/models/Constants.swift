@@ -8,6 +8,165 @@
 import SwiftUI
 import Defaults
 
+enum AppL10n {
+    private static var usesSimplifiedChinese: Bool {
+        guard let language = Locale.preferredLanguages.first?.lowercased() else { return false }
+        return language.hasPrefix("zh-hans") || language.hasPrefix("zh-cn")
+    }
+
+    private static let simplifiedChinese: [String: String] = [
+        // Settings navigation and common actions
+        "General": "通用",
+        "Appearance": "外观",
+        "Media": "媒体",
+        "Calendar": "日历",
+        "Focus Timer": "番茄钟",
+        "HUDs": "系统浮窗",
+        "Battery": "电池",
+        "Shelf": "文件架",
+        "Shortcuts": "快捷键",
+        "Advanced": "高级",
+        "About": "关于",
+        "Settings": "设置",
+        "Restart Boring Notch Focus": "重新启动 Boring Notch Focus",
+        "Quit": "退出",
+
+        // General settings
+        "Show menu bar icon": "显示菜单栏图标",
+        "Launch at login": "登录时启动",
+        "Show on all displays": "在所有显示器上显示",
+        "Preferred display": "首选显示器",
+        "Automatically switch displays": "自动切换显示器",
+        "System features": "系统功能",
+        "Notch height on notch displays": "刘海屏上的灵动岛高度",
+        "Notch height on non-notch displays": "非刘海屏上的灵动岛高度",
+        "Match real notch height": "匹配真实刘海高度",
+        "Match menu bar height": "匹配菜单栏高度",
+        "Match menubar height": "匹配菜单栏高度",
+        "Custom height": "自定义高度",
+        "Notch sizing": "灵动岛尺寸",
+        "Quit app": "退出应用",
+        "Enable gestures": "启用手势",
+        "Change media with horizontal gestures": "横向手势切换媒体",
+        "Close gesture": "关闭手势",
+        "Gesture sensitivity": "手势灵敏度",
+        "High": "高",
+        "Medium": "中",
+        "Low": "低",
+        "Gesture control": "手势控制",
+        "Open notch on hover": "悬停时打开灵动岛",
+        "Enable haptic feedback": "启用触觉反馈",
+        "Remember last tab": "记住上次打开的标签页",
+        "Hover delay": "悬停延迟",
+
+        // Focus timer
+        "Home": "主页",
+        "Focus": "专注",
+        "Break": "休息",
+        "%lld completed": "已完成 %lld 次",
+        "RUNNING": "计时中",
+        "READY": "准备就绪",
+        "Pause": "暂停",
+        "Start": "开始",
+        "Reset": "重置",
+        "Skip": "跳过",
+        "Enable focus timer": "启用番茄钟",
+        "Adds a timer tab to the notch.": "在灵动岛中添加番茄钟标签页。",
+        "Focus duration": "专注时长",
+        "Break duration": "休息时长",
+        "%lld min": "%lld 分钟",
+        "Automatically start the next session": "自动开始下一阶段",
+        "Timing": "计时设置",
+        "Changing a duration resets the current session when the timer is paused.": "暂停计时后修改时长，会重置当前阶段。",
+        "Show countdown in the closed notch": "灵动岛收起时显示倒计时",
+        "Notify when a session ends": "阶段结束时通知",
+        "Feedback": "提醒",
+        "Completed focus sessions": "已完成的专注次数",
+        "Reset timer and session count": "重置计时器和完成次数",
+        "Focus session complete": "专注阶段已完成",
+        "Break complete": "休息结束",
+        "Nice work. Time for a short break.": "做得不错，休息一下吧。",
+        "Ready for another focus session?": "准备好开始下一轮专注了吗？",
+        "Add to Favorites": "收藏当前歌曲",
+        "Remove from Favorites": "取消收藏当前歌曲",
+        "Play": "播放",
+        "Next Track": "下一首",
+
+        // Shelf settings and context menus
+        "Enable shelf": "启用文件架",
+        "Open shelf by default if items are present": "有文件时默认打开文件架",
+        "Expanded drag detection area": "扩大拖放检测区域",
+        "Copy items on drag": "拖出时复制项目",
+        "Remove from shelf after dragging": "拖出后从文件架移除",
+        "Quick Share Service": "快速分享服务",
+        "Quick Share": "快速分享",
+        "Currently selected: %@": "当前选择：%@",
+        "Files dropped on the shelf will be shared via this service": "拖到文件架的文件将通过此服务分享",
+        "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "选择文件架使用的分享服务。点击文件架按钮选择文件，或将文件拖入后立即分享。",
+        "Open": "打开",
+        "Open With": "打开方式",
+        "No Compatible Apps Found": "未找到兼容的应用",
+        "Other…": "其他…",
+        " (default)": "（默认）",
+        "Show in Finder": "在访达中显示",
+        "Quick Look": "快速查看",
+        "Share…": "分享…",
+        "Image Actions": "图像操作",
+        "Remove Background": "移除背景",
+        "Convert Image…": "转换图像…",
+        "Create PDF": "创建 PDF",
+        "Compress": "压缩",
+        "Rename": "重命名",
+        "Copy": "复制",
+        "Copy Path": "复制路径",
+        "Remove": "移除",
+        "Delete Selected": "移除所选项目",
+        "Clear Shelf": "清空文件架",
+        "Select item": "选择项目",
+        "Deselect item": "取消选择项目",
+        "Choose Application": "选择应用",
+        "Choose an application to open the document \"%@\".": "选择用于打开“%@”的应用。",
+        "Enable:": "启用：",
+        "Recommended Applications": "推荐的应用",
+        "All Applications": "所有应用",
+        "Always Open With": "始终用此应用打开",
+        "Rename File": "重命名文件",
+        "Background Removal Failed": "移除背景失败",
+        "PDF Creation Failed": "创建 PDF 失败",
+        "Convert Image": "转换图像",
+        "Convert": "转换",
+        "Cancel": "取消",
+        "Format:": "格式：",
+        "Image Size:": "图像尺寸：",
+        "Actual Size": "实际尺寸",
+        "Large": "大",
+        "Small": "小",
+        "Custom...": "自定义…",
+        "Preserve Metadata": "保留元数据",
+        "Compression:": "压缩质量：",
+        "Image Conversion Failed": "图像转换失败",
+        "OK": "好",
+
+        // About
+        "Automatic updates are disabled for this custom focus-timer build.": "此番茄钟定制版已关闭自动更新。",
+        "Updates are delivered automatically from the Boring Notch Focus release channel.": "更新将通过 Boring Notch Focus 发布通道自动推送。",
+        "Custom build": "定制版本"
+    ]
+
+    static func text(_ english: String) -> String {
+        guard usesSimplifiedChinese else { return english }
+        return simplifiedChinese[english] ?? english
+    }
+
+    static func format(_ englishFormat: String, _ arguments: CVarArg...) -> String {
+        String(
+            format: text(englishFormat),
+            locale: Locale.current,
+            arguments: arguments
+        )
+    }
+}
+
 private let availableDirectories = FileManager
     .default
     .urls(for: .documentDirectory, in: .userDomainMask)
@@ -70,13 +229,14 @@ enum OptionKeyAction: String, CaseIterable, Identifiable, Defaults.Serializable 
 
 extension Defaults.Keys {
     // MARK: General
-    static let menubarIcon = Key<Bool>("menubarIcon", default: true)
-    static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
+    // Distribution defaults captured from the maintainer's preferred setup.
+    static let menubarIcon = Key<Bool>("menubarIcon", default: false)
+    static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: true)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
-    static let releaseName = Key<String>("releaseName", default: "Flying Rabbit 🐇🪽")
+    static let releaseName = Key<String>("releaseName", default: "Focus Timer 🍅")
     
     // MARK: Behavior
-    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
+    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0)
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
@@ -106,7 +266,7 @@ extension Defaults.Keys {
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
-    static let showCalendar = Key<Bool>("showCalendar", default: false)
+    static let showCalendar = Key<Bool>("showCalendar", default: true)
     static let hideCompletedReminders = Key<Bool>("hideCompletedReminders", default: true)
     static let sliderColor = Key<SliderColorEnum>(
         "sliderUseAlbumArtColor",
@@ -116,6 +276,14 @@ extension Defaults.Keys {
     static let useMusicVisualizer = Key<Bool>("useMusicVisualizer", default: true)
     static let customVisualizers = Key<[CustomVisualizer]>("customVisualizers", default: [])
     static let selectedVisualizer = Key<CustomVisualizer?>("selectedVisualizer", default: nil)
+
+    // MARK: Pomodoro
+    static let pomodoroEnabled = Key<Bool>("pomodoroEnabled", default: true)
+    static let pomodoroFocusMinutes = Key<Int>("pomodoroFocusMinutes", default: 25)
+    static let pomodoroBreakMinutes = Key<Int>("pomodoroBreakMinutes", default: 5)
+    static let pomodoroAutoStartNextSession = Key<Bool>("pomodoroAutoStartNextSession", default: false)
+    static let pomodoroShowLiveActivity = Key<Bool>("pomodoroShowLiveActivity", default: true)
+    static let pomodoroNotificationsEnabled = Key<Bool>("pomodoroNotificationsEnabled", default: true)
     
     // MARK: Gestures
     static let enableGestures = Key<Bool>("enableGestures", default: true)
@@ -124,7 +292,7 @@ extension Defaults.Keys {
     
     // MARK: Media playback
     static let coloredSpectrogram = Key<Bool>("coloredSpectrogram", default: true)
-    static let enableSneakPeek = Key<Bool>("enableSneakPeek", default: false)
+    static let enableSneakPeek = Key<Bool>("enableSneakPeek", default: true)
     static let sneakPeekStyles = Key<SneakPeekStyle>("sneakPeekStyles", default: .standard)
     static let waitInterval = Key<Double>("waitInterval", default: 3)
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
@@ -181,7 +349,7 @@ extension Defaults.Keys {
     static let hideNotchOption = Key<HideNotchOption>("hideNotchOption", default: .nowPlayingOnly)
     
     // MARK: Media Controller
-    static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
+    static let mediaController = Key<MediaControllerType>("mediaController", default: .nowPlaying)
     
     // MARK: Advanced Settings
     static let useCustomAccentColor = Key<Bool>("useCustomAccentColor", default: false)

@@ -54,6 +54,51 @@ class TemporaryFileStorageService {
             print("Error: \(error.localizedDescription)")
         }
     }
+
+    /// Copies an item-provider file representation before its completion
+    /// callback returns. Office and WPS often expose DOC/DOCX drags this way
+    /// instead of supplying a public.file-url.
+    func copyFileRepresentationToTemporaryStorage(
+        from sourceURL: URL,
+        suggestedName: String?,
+        typeIdentifier: String
+    ) -> URL? {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+
+        let typeExtension = UTType(typeIdentifier)?.preferredFilenameExtension
+        var filename = suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if filename?.isEmpty != false {
+            filename = sourceURL.lastPathComponent
+        }
+        if filename?.isEmpty != false {
+            filename = typeExtension.map { "Dropped File.\($0)" } ?? "Dropped File"
+        } else if let typeExtension,
+                  URL(fileURLWithPath: filename!).pathExtension.isEmpty {
+            filename! += ".\(typeExtension)"
+        }
+
+        // A suggested name must not be able to escape the temporary folder.
+        let safeFilename = URL(fileURLWithPath: filename!).lastPathComponent
+        let destinationURL = tempDir.appendingPathComponent(safeFilename)
+
+        do {
+            try FileManager.default.createDirectory(
+                at: tempDir,
+                withIntermediateDirectories: true
+            )
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            return destinationURL
+        } catch {
+            NSLog(
+                "❌ Failed to copy dropped file representation (%@): %@",
+                typeIdentifier,
+                error.localizedDescription
+            )
+            try? FileManager.default.removeItem(at: tempDir)
+            return nil
+        }
+    }
     
     // MARK: - Private Implementation
     

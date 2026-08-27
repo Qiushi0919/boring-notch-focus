@@ -72,7 +72,7 @@ class BoringViewCoordinator: ObservableObject {
         }
     }
 
-    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = false {
+    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = true {
         didSet {
             if openLastTabByDefault {
                 alwaysShowTabs = true
@@ -255,6 +255,28 @@ class BoringViewCoordinator: ObservableObject {
                 scheduleSneakPeekHide(after: sneakPeekDuration)
             } else {
                 sneakPeekTask?.cancel()
+            }
+        }
+    }
+
+    var isMusicPreviewShowing: Bool {
+        (sneakPeek.show && sneakPeek.type == .music)
+            || (expandingView.show && expandingView.type == .music)
+    }
+
+    /// A music preview is only a temporary closed-notch notification. Once the
+    /// user deliberately hovers it, stop both preview timers so the full notch
+    /// can take ownership of the interaction and remain open until mouse exit.
+    func dismissMusicPreviewForInteraction() {
+        sneakPeekTask?.cancel()
+        expandingViewTask?.cancel()
+
+        withAnimation(.smooth) {
+            if sneakPeek.show && sneakPeek.type == .music {
+                sneakPeek.show = false
+            }
+            if expandingView.show && expandingView.type == .music {
+                expandingView.show = false
             }
         }
     }

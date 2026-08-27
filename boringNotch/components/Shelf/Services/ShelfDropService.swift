@@ -23,11 +23,8 @@ struct ShelfDropService {
     }
     
     private static func processProvider(_ provider: NSItemProvider) async -> ShelfItem? {
-        if let actualFileURL = await provider.extractFileURL() {
-            if let bookmark = createBookmark(for: actualFileURL) {
-                return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
-            }
-            return nil
+        if let bookmark = await provider.extractFileBookmark() {
+            return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
         }
         
         if let url = await provider.extractURL() {
@@ -39,6 +36,14 @@ struct ShelfDropService {
                 return await ShelfItem(kind: .link(url: url), isTemporary: false)
             }
             return nil
+        }
+
+        if let temporaryFileURL = await provider.extractFileRepresentation(),
+           let bookmark = createBookmark(for: temporaryFileURL) {
+            return await ShelfItem(
+                kind: .file(bookmark: bookmark),
+                isTemporary: true
+            )
         }
         
         if let text = await provider.extractText() {
@@ -53,10 +58,8 @@ struct ShelfDropService {
             return nil
         }
         
-        if let fileURL = await provider.extractItem() {
-            if let bookmark = createBookmark(for: fileURL) {
-                return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
-            }
+        if let bookmark = await provider.extractItemBookmark() {
+            return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
         }
         
         return nil
@@ -66,4 +69,3 @@ struct ShelfDropService {
         return (try? Bookmark(url: url))?.data
     }
 }
-

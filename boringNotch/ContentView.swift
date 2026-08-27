@@ -23,6 +23,8 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
+    @ObservedObject var pomodoroTimer = PomodoroTimer.shared
+    @StateObject private var quickLookService = QuickLookService()
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -36,6 +38,8 @@ struct ContentView: View {
     @Default(.useMusicVisualizer) var useMusicVisualizer
 
     @Default(.showNotHumanFace) var showNotHumanFace
+
+    @Default(.pomodoroShowLiveActivity) var pomodoroShowLiveActivity
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
@@ -65,6 +69,11 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = 640
+        } else if pomodoroTimer.isRunning && pomodoroShowLiveActivity
+            && !coordinator.expandingView.show && !coordinator.sneakPeek.show
+            && vm.notchState == .closed && !vm.hideOnClosed
+        {
+            chinWidth += 128
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -214,6 +223,11 @@ struct ContentView: View {
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .environmentObject(quickLookService)
+        .quickLookPresenter(using: quickLookService)
+        .task(id: vm.notchState) {
+            await monitorMouseExitWhileOpen()
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -287,6 +301,11 @@ struct ContentView: View {
                       } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && (coordinator.sneakPeek.type != .battery) && vm.notchState == .closed {
                           InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                               .transition(.opacity)
+                      } else if pomodoroTimer.isRunning && pomodoroShowLiveActivity
+                          && !coordinator.expandingView.show && vm.notchState == .closed && !vm.hideOnClosed
+                      {
+                          PomodoroLiveActivity()
+                              .frame(alignment: .center)
                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                           MusicLiveActivity()
                               .frame(alignment: .center)
@@ -349,6 +368,8 @@ struct ContentView: View {
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
                     case .shelf:
                         ShelfView()
+                    case .pomodoro:
+                        PomodoroView()
                     }
                 }
                 .transition(
@@ -361,7 +382,6 @@ struct ContentView: View {
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
     }
 
     @ViewBuilder
@@ -492,7 +512,7 @@ struct ContentView: View {
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
+        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .item], isTargeted: $vm.dragDetectorTargeting) { providers in
             vm.dropEvent = true
             ShelfStateViewModel.shared.load(providers)
             return true
@@ -522,10 +542,22 @@ struct ContentView: View {
             if vm.notchState == .closed && Defaults[.enableHaptics] {
                 haptics.toggle()
             }
-            
+
             guard vm.notchState == .closed,
-                  !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
+
+            // The three-second new-track preview used to block hover opening.
+            // Treat hovering either music-preview style as explicit intent:
+            // dismiss its auto-hide timer and immediately open the full notch.
+            if coordinator.isMusicPreviewShowing {
+                coordinator.dismissMusicPreviewForInteraction()
+                doOpen()
+                return
+            }
+
+            // Other transient HUDs (volume, brightness, etc.) should keep their
+            // existing behavior and must not unexpectedly open the full notch.
+            guard !coordinator.sneakPeek.show else { return }
             
             hoverTask = Task {
                 try? await Task.sleep(for: .seconds(Defaults[.minimumHoverDuration]))
@@ -554,6 +586,39 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// SwiftUI's nested calendar `List` can occasionally consume the parent's
+    /// `onHover(false)` event. While the notch is open, verify the real pointer
+    /// position so leaving any child view still closes the notch reliably.
+    private func monitorMouseExitWhileOpen() async {
+        guard vm.notchState == .open else { return }
+
+        var consecutiveOutsideChecks = 0
+
+        while !Task.isCancelled && vm.notchState == .open {
+            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else { return }
+
+            let closeIsTemporarilyBlocked = vm.isBatteryPopoverActive
+                || vm.anyDropZoneTargeting
+                || SharingStateManager.shared.preventNotchClose
+
+            if closeIsTemporarilyBlocked || vm.isMouseHovering() {
+                consecutiveOutsideChecks = 0
+                continue
+            }
+
+            consecutiveOutsideChecks += 1
+            guard consecutiveOutsideChecks >= 3 else { continue }
+
+            withAnimation(animationSpring) {
+                isHovering = false
+            }
+            vm.isHoveringCalendar = false
+            vm.close()
+            return
         }
     }
 
@@ -629,26 +694,6 @@ struct FullScreenDropDelegate: DropDelegate {
         return true
     }
 
-}
-
-struct GeneralDropTargetDelegate: DropDelegate {
-    @Binding var isTargeted: Bool
-
-    func dropEntered(info: DropInfo) {
-        isTargeted = true
-    }
-
-    func dropExited(info: DropInfo) {
-        isTargeted = false
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        return DropProposal(operation: .cancel)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        return false
-    }
 }
 
 #Preview {

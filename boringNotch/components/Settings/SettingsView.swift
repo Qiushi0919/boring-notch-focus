@@ -28,40 +28,43 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
-                    Label("General", systemImage: "gear")
+                    Label(AppL10n.text("General"), systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "eye")
+                    Label(AppL10n.text("Appearance"), systemImage: "eye")
                 }
                 NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "play.laptopcomputer")
+                    Label(AppL10n.text("Media"), systemImage: "play.laptopcomputer")
                 }
                 NavigationLink(value: "Calendar") {
-                    Label("Calendar", systemImage: "calendar")
+                    Label(AppL10n.text("Calendar"), systemImage: "calendar")
+                }
+                NavigationLink(value: "Focus Timer") {
+                    Label(AppL10n.text("Focus Timer"), systemImage: "timer")
                 }
                 NavigationLink(value: "HUD") {
-                    Label("HUDs", systemImage: "dial.medium.fill")
+                    Label(AppL10n.text("HUDs"), systemImage: "dial.medium.fill")
                 }
                 NavigationLink(value: "Battery") {
-                    Label("Battery", systemImage: "battery.100.bolt")
+                    Label(AppL10n.text("Battery"), systemImage: "battery.100.bolt")
                 }
 //                NavigationLink(value: "Downloads") {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
 //                }
                 NavigationLink(value: "Shelf") {
-                    Label("Shelf", systemImage: "books.vertical")
+                    Label(AppL10n.text("Shelf"), systemImage: "books.vertical")
                 }
                 NavigationLink(value: "Shortcuts") {
-                    Label("Shortcuts", systemImage: "keyboard")
+                    Label(AppL10n.text("Shortcuts"), systemImage: "keyboard")
                 }
                 // NavigationLink(value: "Extensions") {
                 //     Label("Extensions", systemImage: "puzzlepiece.extension")
                 // }
                 NavigationLink(value: "Advanced") {
-                    Label("Advanced", systemImage: "gearshape.2")
+                    Label(AppL10n.text("Advanced"), systemImage: "gearshape.2")
                 }
                 NavigationLink(value: "About") {
-                    Label("About", systemImage: "info.circle")
+                    Label(AppL10n.text("About"), systemImage: "info.circle")
                 }
             }
             .listStyle(SidebarListStyle())
@@ -79,6 +82,8 @@ struct SettingsView: View {
                     Media()
                 case "Calendar":
                     CalendarSettings()
+                case "Focus Timer":
+                    PomodoroSettings()
                 case "HUD":
                     HUD()
                 case "Battery":
@@ -98,7 +103,7 @@ struct SettingsView: View {
                         // Fallback with a default controller
                         About(
                             updaterController: SPUStandardUpdaterController(
-                                startingUpdater: false, updaterDelegate: nil,
+                                startingUpdater: true, updaterDelegate: nil,
                                 userDriverDelegate: nil))
                     }
                 default:
@@ -156,18 +161,18 @@ struct GeneralSettings: View {
                     get: { Defaults[.menubarIcon] },
                     set: { Defaults[.menubarIcon] = $0 }
                 )) {
-                    Text("Show menu bar icon")
+                    Text(AppL10n.text("Show menu bar icon"))
                 }
                 .tint(.effectiveAccent)
-                LaunchAtLogin.Toggle("Launch at login")
+                LaunchAtLogin.Toggle(AppL10n.text("Launch at login"))
                 Defaults.Toggle(key: .showOnAllDisplays) {
-                    Text("Show on all displays")
+                    Text(AppL10n.text("Show on all displays"))
                 }
                 .onChange(of: showOnAllDisplays) {
                     NotificationCenter.default.post(
                         name: Notification.Name.showOnAllDisplaysChanged, object: nil)
                 }
-                Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
+                Picker(AppL10n.text("Preferred display"), selection: $coordinator.preferredScreenUUID) {
                     ForEach(screens, id: \.uuid) { screen in
                         Text(screen.name).tag(screen.uuid as String?)
                     }
@@ -181,7 +186,7 @@ struct GeneralSettings: View {
                 .disabled(showOnAllDisplays)
                 
                 Defaults.Toggle(key: .automaticallySwitchDisplay) {
-                    Text("Automatically switch displays")
+                    Text(AppL10n.text("Automatically switch displays"))
                 }
                     .onChange(of: automaticallySwitchDisplay) {
                         NotificationCenter.default.post(
@@ -189,20 +194,20 @@ struct GeneralSettings: View {
                     }
                     .disabled(showOnAllDisplays)
             } header: {
-                Text("System features")
+                Text(AppL10n.text("System features"))
             }
 
             Section {
                 Picker(
                     selection: $notchHeightMode,
                     label:
-                        Text("Notch height on notch displays")
+                        Text(AppL10n.text("Notch height on notch displays"))
                 ) {
-                    Text("Match real notch height")
+                    Text(AppL10n.text("Match real notch height"))
                         .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Match menu bar height")
+                    Text(AppL10n.text("Match menu bar height"))
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Custom height")
+                    Text(AppL10n.text("Custom height"))
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: notchHeightMode) {
@@ -226,12 +231,12 @@ struct GeneralSettings: View {
                             name: Notification.Name.notchHeightChanged, object: nil)
                     }
                 }
-                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
-                    Text("Match menubar height")
+                Picker(AppL10n.text("Notch height on non-notch displays"), selection: $nonNotchHeightMode) {
+                    Text(AppL10n.text("Match menubar height"))
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Match real notch height")
+                    Text(AppL10n.text("Match real notch height"))
                         .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Custom height")
+                    Text(AppL10n.text("Custom height"))
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: nonNotchHeightMode) {
@@ -256,7 +261,7 @@ struct GeneralSettings: View {
                     }
                 }
             } header: {
-                Text("Notch sizing")
+                Text(AppL10n.text("Notch sizing"))
             }
 
             NotchBehaviour()
@@ -264,13 +269,13 @@ struct GeneralSettings: View {
             gestureControls()
         }
         .toolbar {
-            Button("Quit app") {
+            Button(AppL10n.text("Quit app")) {
                 NSApp.terminate(self)
             }
             .controlSize(.extraLarge)
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("General")
+        .navigationTitle(AppL10n.text("General"))
         .onChange(of: openNotchOnHover) {
             if !openNotchOnHover {
                 enableGestures = true
@@ -282,22 +287,24 @@ struct GeneralSettings: View {
     func gestureControls() -> some View {
         Section {
             Defaults.Toggle(key: .enableGestures) {
-                Text("Enable gestures")
+                Text(AppL10n.text("Enable gestures"))
             }
                 .disabled(!openNotchOnHover)
             if enableGestures {
-                Toggle("Change media with horizontal gestures", isOn: .constant(false))
+                Toggle(AppL10n.text("Change media with horizontal gestures"), isOn: .constant(false))
                     .disabled(true)
                 Defaults.Toggle(key: .closeGestureEnabled) {
-                    Text("Close gesture")
+                    Text(AppL10n.text("Close gesture"))
                 }
                 Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
                     HStack {
-                        Text("Gesture sensitivity")
+                        Text(AppL10n.text("Gesture sensitivity"))
                         Spacer()
                         Text(
-                            Defaults[.gestureSensitivity] == 100
-                                ? "High" : Defaults[.gestureSensitivity] == 200 ? "Medium" : "Low"
+                            AppL10n.text(
+                                Defaults[.gestureSensitivity] == 100
+                                    ? "High" : Defaults[.gestureSensitivity] == 200 ? "Medium" : "Low"
+                            )
                         )
                         .foregroundStyle(.secondary)
                     }
@@ -305,7 +312,7 @@ struct GeneralSettings: View {
             }
         } header: {
             HStack {
-                Text("Gesture control")
+                Text(AppL10n.text("Gesture control"))
                 customBadge(text: "Beta")
             }
         } footer: {
@@ -322,16 +329,16 @@ struct GeneralSettings: View {
     func NotchBehaviour() -> some View {
         Section {
             Defaults.Toggle(key: .openNotchOnHover) {
-                Text("Open notch on hover")
+                Text(AppL10n.text("Open notch on hover"))
             }
             Defaults.Toggle(key: .enableHaptics) {
-                    Text("Enable haptic feedback")
+                    Text(AppL10n.text("Enable haptic feedback"))
             }
-            Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
+            Toggle(AppL10n.text("Remember last tab"), isOn: $coordinator.openLastTabByDefault)
             if openNotchOnHover {
                 Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
                     HStack {
-                        Text("Hover delay")
+                        Text(AppL10n.text("Hover delay"))
                         Spacer()
                         Text("\(minimumHoverDuration, specifier: "%.1f")s")
                             .foregroundStyle(.secondary)
@@ -865,12 +872,20 @@ struct About: View {
                     Text("Version info")
                 }
 
+                Section {
+                    Text(AppL10n.text("Updates are delivered automatically from the Boring Notch Focus release channel."))
+                        .foregroundStyle(.secondary)
+                    CheckForUpdatesView(updater: updaterController.updater)
+                } header: {
+                    Text(AppL10n.text("Custom build"))
+                }
+
                 UpdaterSettingsView(updater: updaterController.updater)
 
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)
                     Button {
-                        if let url = URL(string: "https://github.com/TheBoredTeam/boring.notch") {
+                        if let url = URL(string: "https://github.com/Qiushi0919/boring-notch-focus") {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
@@ -898,14 +913,7 @@ struct About: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .toolbar {
-            //            Button("Welcome window") {
-            //                openWindow(id: "onboarding")
-            //            }
-            //            .controlSize(.extraLarge)
-            CheckForUpdatesView(updater: updaterController.updater)
-        }
-        .navigationTitle("About")
+        .navigationTitle(AppL10n.text("About"))
     }
 }
 
@@ -928,13 +936,13 @@ struct Shelf: View {
         Form {
             Section {
                 Defaults.Toggle(key: .boringShelf) {
-                    Text("Enable shelf")
+                    Text(AppL10n.text("Enable shelf"))
                 }
                 Defaults.Toggle(key: .openShelfByDefault) {
-                    Text("Open shelf by default if items are present")
+                    Text(AppL10n.text("Open shelf by default if items are present"))
                 }
                 Defaults.Toggle(key: .expandedDragDetection) {
-                    Text("Expanded drag detection area")
+                    Text(AppL10n.text("Expanded drag detection area"))
                 }
                 .onChange(of: expandedDragDetection) {
                     NotificationCenter.default.post(
@@ -943,20 +951,20 @@ struct Shelf: View {
                     )
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
-                    Text("Copy items on drag")
+                    Text(AppL10n.text("Copy items on drag"))
                 }
                 Defaults.Toggle(key: .autoRemoveShelfItems) {
-                    Text("Remove from shelf after dragging")
+                    Text(AppL10n.text("Remove from shelf after dragging"))
                 }
 
             } header: {
                 HStack {
-                    Text("General")
+                    Text(AppL10n.text("General"))
                 }
             }
             
             Section {
-                Picker("Quick Share Service", selection: $quickShareProvider) {
+                Picker(AppL10n.text("Quick Share Service"), selection: $quickShareProvider) {
                     ForEach(quickShareService.availableProviders, id: \.id) { provider in
                         HStack {
                             Group {
@@ -991,10 +999,10 @@ struct Shelf: View {
                         .frame(width: 16, height: 16)
                         .foregroundColor(.accentColor)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Currently selected: \(selectedProvider.id)")
+                            Text(AppL10n.format("Currently selected: %@", selectedProvider.id))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("Files dropped on the shelf will be shared via this service")
+                            Text(AppL10n.text("Files dropped on the shelf will be shared via this service"))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -1005,16 +1013,16 @@ struct Shelf: View {
                 
             } header: {
                 HStack {
-                    Text("Quick Share")
+                    Text(AppL10n.text("Quick Share"))
                 }
             } footer: {
-                Text("Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.")
+                Text(AppL10n.text("Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately."))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shelf")
+        .navigationTitle(AppL10n.text("Shelf"))
     }
 }
 

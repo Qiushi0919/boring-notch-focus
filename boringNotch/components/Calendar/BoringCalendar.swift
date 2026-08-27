@@ -214,13 +214,13 @@ struct CalendarView: View {
             }
 
             let filteredEvents = EventListView.filteredEvents(
-                events: calendarManager.events
+                events: calendarManager.upcomingEvents
             )
             if filteredEvents.isEmpty {
-                EmptyEventsView(selectedDate: selectedDate)
+                EmptyEventsView()
                 Spacer(minLength: 0)
             } else {
-                EventListView(events: calendarManager.events)
+                EventListView(events: calendarManager.upcomingEvents)
             }
         }
         .listRowBackground(Color.clear)
@@ -232,31 +232,32 @@ struct CalendarView: View {
         }
         .onChange(of: vm.notchState) { _, _ in
             Task {
-                await calendarManager.updateCurrentDate(Date.now)
+                await calendarManager.updateUpcomingEvents()
                 selectedDate = Date.now
             }
         }
         .onAppear {
             Task {
-                await calendarManager.updateCurrentDate(Date.now)
+                await calendarManager.updateUpcomingEvents()
                 selectedDate = Date.now
             }
+        }
+        .onDisappear {
+            vm.isHoveringCalendar = false
         }
     }
 }
 
 struct EmptyEventsView: View {
-    let selectedDate: Date
-    
     var body: some View {
         VStack {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.title)
                 .foregroundColor(Color(white: 0.65))
-            Text(Calendar.current.isDateInToday(selectedDate) ? "No events today" : "No events")
+            Text("未来 30 天暂无日程")
                 .font(.subheadline)
                 .foregroundColor(.white)
-            Text("Enjoy your free time!")
+            Text("最近的日程会显示在这里")
                 .font(.caption)
                 .foregroundColor(Color(white: 0.65))
         }
@@ -272,18 +273,25 @@ struct EventListView: View {
 
 
     static func filteredEvents(events: [EventModel]) -> [EventModel] {
-        events.filter { event in
-            if event.type.isReminder {
-                if case .reminder(let completed) = event.type {
-                    return !completed || !Defaults[.hideCompletedReminders]
+        Array(
+            events.filter { event in
+                if event.type.isReminder {
+                    if case .reminder(let completed) = event.type,
+                       completed && Defaults[.hideCompletedReminders]
+                    {
+                        return false
+                    }
                 }
+
+                if event.isAllDay && Defaults[.hideAllDayEvents] {
+                    return false
+                }
+
+                return event.end > Date.now
             }
-            // Filter out all-day events if setting is enabled
-            if event.isAllDay && Defaults[.hideAllDayEvents] {
-                return false
-            }
-            return true
-        }
+            .sorted { $0.start < $1.start }
+            .prefix(3)
+        )
     }
 
     private var filteredEvents: [EventModel] {
@@ -372,6 +380,11 @@ struct EventListView: View {
                             .lineLimit(showFullEventTitles ? nil : 1)
                         Spacer(minLength: 0)
                         VStack(alignment: .trailing, spacing: 4) {
+                            if !Calendar.current.isDateInToday(event.start) {
+                                Text(event.start, format: .dateTime.weekday(.abbreviated).month().day())
+                                    .font(.caption2)
+                                    .foregroundColor(Color(white: 0.65))
+                            }
                             if event.isAllDay {
                                 Text("All-day")
                                     .font(.caption)
@@ -418,6 +431,11 @@ struct EventListView: View {
                     }
                     Spacer(minLength: 0)
                     VStack(alignment: .trailing, spacing: 4) {
+                        if !Calendar.current.isDateInToday(event.start) {
+                            Text(event.start, format: .dateTime.weekday(.abbreviated).month().day())
+                                .font(.caption2)
+                                .foregroundColor(Color(white: 0.65))
+                        }
                         if event.isAllDay {
                             Text("All-day")
                                 .font(.caption)

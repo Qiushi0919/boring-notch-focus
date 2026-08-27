@@ -17,6 +17,7 @@ class CalendarManager: ObservableObject {
 
     @Published var currentWeekStartDate: Date
     @Published var events: [EventModel] = []
+    @Published var upcomingEvents: [EventModel] = []
     @Published var allCalendars: [CalendarModel] = []
     @Published var eventCalendars: [CalendarModel] = []
     @Published var reminderLists: [CalendarModel] = []
@@ -61,6 +62,7 @@ class CalendarManager: ObservableObject {
         self.reminderLists = all.filter { $0.isReminder }
         self.allCalendars = all // for legacy compatibility, can be removed if not needed
         updateSelectedCalendars()
+        await updateUpcomingEvents()
     }
 
     func checkCalendarAuthorization() async {
@@ -81,7 +83,7 @@ class CalendarManager: ObservableObject {
                 await reloadCalendarAndReminderLists()
                 events = await calendarService.events(
                     from: currentWeekStartDate,
-                    to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+                    to: eventsEndDate(from: currentWeekStartDate),
                     calendars: selectedCalendars.map { $0.id })
             }
         case .restricted, .denied:
@@ -91,7 +93,7 @@ class CalendarManager: ObservableObject {
             await reloadCalendarAndReminderLists()
             events = await calendarService.events(
                 from: currentWeekStartDate,
-                to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+                to: eventsEndDate(from: currentWeekStartDate),
                 calendars: selectedCalendars.map { $0.id })
         case .writeOnly:
             NSLog("Write only")
@@ -172,6 +174,7 @@ class CalendarManager: ObservableObject {
         Defaults[.calendarSelectionState] = selectionState
         updateSelectedCalendars()
         await updateEvents()
+        await updateUpcomingEvents()
     }
 
     static func startOfDay(_ date: Date) -> Date {
@@ -187,10 +190,28 @@ class CalendarManager: ObservableObject {
         let calendarIDs = selectedCalendars.map { $0.id }
         let eventsResult = await calendarService.events(
             from: currentWeekStartDate,
-            to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+            to: eventsEndDate(from: currentWeekStartDate),
             calendars: calendarIDs
         )
         self.events = eventsResult
+    }
+
+    /// The calendar card is an agenda, not a single-day list. Keep it independent
+    /// from the date wheel and always load the nearest items from now onward.
+    func updateUpcomingEvents() async {
+        let startDate = Date.now
+        let endDate = Calendar.current.date(byAdding: .day, value: 30, to: startDate) ?? startDate
+        let result = await calendarService.events(
+            from: startDate,
+            to: endDate,
+            calendars: selectedCalendars.map { $0.id }
+        )
+        upcomingEvents = result
+        NSLog("Upcoming calendar list updated with %ld items", result.count)
+    }
+
+    private func eventsEndDate(from startDate: Date) -> Date {
+        Calendar.current.date(byAdding: .day, value: 14, to: startDate) ?? startDate
     }
     
     func setReminderCompleted(reminderID: String, completed: Bool) async {
@@ -198,7 +219,8 @@ class CalendarManager: ObservableObject {
         // Refresh events after updating
         events = await calendarService.events(
             from: currentWeekStartDate,
-            to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+            to: eventsEndDate(from: currentWeekStartDate),
             calendars: selectedCalendars.map { $0.id })
+        await updateUpcomingEvents()
     }
 }

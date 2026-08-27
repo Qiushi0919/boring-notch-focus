@@ -12,7 +12,7 @@ struct ShelfView: View {
     @EnvironmentObject var vm: BoringViewModel
     @StateObject var tvm = ShelfStateViewModel.shared
     @StateObject var selection = ShelfSelectionModel.shared
-    @StateObject private var quickLookService = QuickLookService()
+    @EnvironmentObject private var quickLookService: QuickLookService
     private let spacing: CGFloat = 8
 
     var body: some View {
@@ -21,7 +21,7 @@ struct ShelfView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .environmentObject(vm)
             panel
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .item], isTargeted: $vm.dragDetectorTargeting) { providers in
                     handleDrop(providers: providers)
                 }
         }
@@ -29,7 +29,40 @@ struct ShelfView: View {
         .onChange(of: selection.selectedIDs) {
             updateQuickLookSelection()
         }
-        .quickLookPresenter(using: quickLookService)
+    }
+
+    private var shelfActions: some View {
+        HStack(spacing: 4) {
+            Button {
+                let selectedItems = selection.selectedItems(in: tvm.items)
+                quickLookService.hide()
+                tvm.remove(selectedItems)
+                selection.clear()
+            } label: {
+                Image(systemName: "trash")
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .disabled(!selection.hasSelection)
+            .opacity(selection.hasSelection ? 1 : 0.35)
+            .help(AppL10n.text("Delete Selected"))
+
+            Button {
+                tvm.removeAll()
+                selection.clear()
+                quickLookService.hide()
+            } label: {
+                Image(systemName: "trash.slash")
+                    .foregroundStyle(.red)
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .disabled(tvm.isEmpty)
+            .opacity(tvm.isEmpty ? 0.35 : 1)
+            .help(AppL10n.text("Clear Shelf"))
+        }
+        .padding(4)
+        .background(.black.opacity(0.75), in: Capsule())
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -70,6 +103,12 @@ struct ShelfView: View {
                 content
                     .padding()
             }
+            .overlay(alignment: .topTrailing) {
+                if !tvm.isEmpty {
+                    shelfActions
+                        .padding(6)
+                }
+            }
             .transaction { transaction in
                 transaction.animation = vm.animation
             }
@@ -97,13 +136,12 @@ struct ShelfView: View {
                     HStack(spacing: spacing) {
                         ForEach(tvm.items) { item in
                             ShelfItemView(item: item)
-                                .environmentObject(quickLookService)
                         }
                     }
                 }
                 .padding(-spacing)
                 .scrollIndicators(.never)
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .item], isTargeted: $vm.dragDetectorTargeting) { providers in
                     handleDrop(providers: providers)
                 }
             }

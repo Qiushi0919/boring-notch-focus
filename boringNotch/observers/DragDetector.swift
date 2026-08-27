@@ -43,9 +43,21 @@ final class DragDetector {
         let validTypes: [NSPasteboard.PasteboardType] = [
             .fileURL,
             NSPasteboard.PasteboardType(UTType.url.identifier),
-            .string
+            .string,
+            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url"),
+            NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-content-type")
         ]
-        return dragPasteboard.types?.contains(where: validTypes.contains) ?? false
+        guard let draggedTypes = dragPasteboard.types else { return false }
+        return draggedTypes.contains { pasteboardType in
+            if validTypes.contains(pasteboardType) { return true }
+            guard let uniformType = UTType(pasteboardType.rawValue) else {
+                return false
+            }
+            // Includes Office Open XML, legacy Word documents, PDFs, images,
+            // archives, and other concrete file representations.
+            return uniformType.conforms(to: .content)
+                || uniformType.conforms(to: .data)
+        }
     }
 
     func startMonitoring() {

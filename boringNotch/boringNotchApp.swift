@@ -29,19 +29,18 @@ struct DynamicNotchApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("boring.notch", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
-            Button("Settings") {
+        MenuBarExtra("Boring Notch Focus", systemImage: "timer", isInserted: $showMenuBarIcon) {
+            Button(AppL10n.text("Settings")) {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
                 }
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-            CheckForUpdatesView(updater: updaterController.updater)
             Divider()
-            Button("Restart Boring Notch") {
+            Button(AppL10n.text("Restart Boring Notch Focus")) {
                 ApplicationRelauncher.restart()
             }
-            Button("Quit", role: .destructive) {
+            Button(AppL10n.text("Quit"), role: .destructive) {
                 NSApplication.shared.terminate(self)
             }
             .keyboardShortcut(KeyEquivalent("Q"), modifiers: .command)
@@ -280,6 +279,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+
+        if Defaults[.showCalendar] {
+            Task { @MainActor in
+                await CalendarManager.shared.checkCalendarAuthorization()
+                await CalendarManager.shared.checkReminderAuthorization()
+            }
+        }
 
         NotificationCenter.default.addObserver(
             self,

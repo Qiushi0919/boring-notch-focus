@@ -46,42 +46,73 @@ class CalendarService: CalendarServiceProviding {
     
     func calendars() async -> [CalendarModel] {
         var calendars: [EKCalendar] = []
+
+        NSLog(
+            "Calendar authorization events=%ld reminders=%ld",
+            EKEventStore.authorizationStatus(for: .event).rawValue,
+            EKEventStore.authorizationStatus(for: .reminder).rawValue
+        )
         
         for type in [EKEntityType.event, .reminder] where hasAccess(to: type) {
             calendars.append(contentsOf: store.calendars(for: type))
         }
         
-        return calendars.map { CalendarModel(from: $0) }
+        let models = calendars.map { CalendarModel(from: $0) }
+        NSLog("Calendar store returned %ld calendars", models.count)
+        return models
     }
     
     func events(from start: Date, to end: Date, calendars ids: [String]) async -> [EventModel] {
         let allCalendars = await self.calendars()
         let filteredCalendars = allCalendars.filter { ids.isEmpty || ids.contains($0.id) }
-        let ekCalendars = filteredCalendars.compactMap { calendarModel in
-            store.calendars(for: .event).first { $0.calendarIdentifier == calendarModel.id } ??
-            store.calendars(for: .reminder).first { $0.calendarIdentifier == calendarModel.id }
+        let selectedEventIDs = Set(filteredCalendars.filter { !$0.isReminder }.map(\.id))
+        let selectedReminderIDs = Set(filteredCalendars.filter(\.isReminder).map(\.id))
+        let eventCalendars = store.calendars(for: .event).filter {
+            selectedEventIDs.contains($0.calendarIdentifier)
+        }
+        let reminderCalendars = store.calendars(for: .reminder).filter {
+            selectedReminderIDs.contains($0.calendarIdentifier)
         }
         
         var events: [EventModel] = []
+
+        NSLog(
+            "Calendar query selected=%ld resolved=%ld range=%@ to %@",
+            ids.count,
+            eventCalendars.count + reminderCalendars.count,
+            start.description,
+            end.description
+        )
         
         // Fetch regular events
         if hasAccess(to: .event) {
-            let eventCalendars = ekCalendars.filter { store.calendars(for: .event).contains($0) }
-            let predicate = store.predicateForEvents(withStart: start, end: end, calendars: eventCalendars)
+            let predicate = store.predicateForEvents(
+                withStart: start,
+                end: end,
+                calendars: eventCalendars.isEmpty && ids.isEmpty ? nil : eventCalendars
+            )
             let ekEvents = store.events(matching: predicate)
+            NSLog("Calendar query returned %ld EKEvents", ekEvents.count)
             events.append(contentsOf: ekEvents.compactMap { EventModel(from: $0) })
         }
         
         // Fetch reminders
         if hasAccess(to: .reminder) {
-            let reminderCalendars = ekCalendars.filter { store.calendars(for: .reminder).contains($0) }
-            events.append(contentsOf: await fetchReminders(from: start, to: end, calendars: reminderCalendars))
+            events.append(
+                contentsOf: await fetchReminders(
+                    from: start,
+                    to: end,
+                    calendars: reminderCalendars.isEmpty && ids.isEmpty ? nil : reminderCalendars
+                )
+            )
         }
         
-        return events.sorted { $0.start < $1.start }
+        let sortedEvents = events.sorted { $0.start < $1.start }
+        NSLog("Calendar query returned %ld combined items", sortedEvents.count)
+        return sortedEvents
     }
     
-    private func fetchReminders(from start: Date, to end: Date, calendars: [EKCalendar]) async -> [EventModel] {
+    private func fetchReminders(from start: Date, to end: Date, calendars: [EKCalendar]?) async -> [EventModel] {
         return await withCheckedContinuation { continuation in
             // Create predicate for reminders with due dates in the specified range
             let predicate = store.predicateForReminders(in: calendars)

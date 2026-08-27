@@ -7,14 +7,16 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>SUEnableDownloaderService</key>
+	<key>SUEnableAutomaticChecks</key>
 	<true/>
-	<key>SUEnableInstallerLauncherService</key>
+	<key>SUAutomaticallyUpdate</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://TheBoredTeam.github.io/boring.notch/appcast.xml</string>
+	<string>https://qiushi0919.github.io/boring-notch-focus/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>B1Y47t8C/v8ImurYA+9arEsuCrpxwJSviekiflMElbI=</string>
+	<string>513mRvihxWadYgC701fIq1xVpf5Nrr80E5vaURyHYnQ=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict/>

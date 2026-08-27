@@ -20,11 +20,23 @@ struct Bookmark: Sendable, Equatable, Codable {
             throw NSError(domain: "Bookmark", code: 1, userInfo: [NSLocalizedDescriptionKey: "Not a valid file URL or file does not exist at \(url.path)"])
         }
         do {
-            let bookmark = try url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
+            let bookmark: Data
+            do {
+                bookmark = try url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+            } catch {
+                // The Focus build is intentionally not App Sandboxed so that
+                // it can send app-scoped Accessibility commands. A normal
+                // bookmark is the correct fallback in that configuration.
+                bookmark = try url.bookmarkData(
+                    options: [],
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+            }
             NSLog("✅ Successfully created bookmark for \(url.path)")
             self.data = bookmark
         } catch {
@@ -35,23 +47,29 @@ struct Bookmark: Sendable, Equatable, Codable {
 
     func resolve() -> (url: URL?, refreshedData: Data?) {
         guard !data.isEmpty else { return (nil, nil) }
-        var isStale = false
-        do {
-            let url = try URL(
-                resolvingBookmarkData: data,
-                options: [.withSecurityScope],
-                relativeTo: nil,
-                bookmarkDataIsStale: &isStale
-            )
-            if isStale, let newData = try? url.bookmarkData(options: [.withSecurityScope]) {
-                NSLog("⚠️ Bookmark was stale for \(url.path), refreshed")
-                return (url, newData)
+        for options in [
+            URL.BookmarkResolutionOptions.withSecurityScope,
+            URL.BookmarkResolutionOptions()
+        ] {
+            var isStale = false
+            do {
+                let url = try URL(
+                    resolvingBookmarkData: data,
+                    options: options,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                )
+                if isStale, let newData = try? Bookmark(url: url).data {
+                    NSLog("⚠️ Bookmark was stale for \(url.path), refreshed")
+                    return (url, newData)
+                }
+                return (url, nil)
+            } catch {
+                continue
             }
-            return (url, nil)
-        } catch {
-            NSLog("❌ Failed to resolve bookmark: \(error.localizedDescription)")
-            return (nil, nil)
         }
+        NSLog("❌ Failed to resolve bookmark with scoped and regular options")
+        return (nil, nil)
     }
 
     func resolveURL() -> URL? {
