@@ -87,6 +87,7 @@ enum AppL10n {
         "Shortcuts": "快捷键",
         "Advanced": "高级",
         "About": "关于",
+        "Version": "版本",
         "Permissions": "权限中心",
         "Settings": "设置",
         "Restart Boring Notch Focus": "重新启动 Boring Notch Focus",

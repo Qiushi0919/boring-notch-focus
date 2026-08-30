@@ -27,52 +27,73 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedTab) {
-                NavigationLink(value: "General") {
-                    Label(AppL10n.text("General"), systemImage: "gear")
-                }
-                NavigationLink(value: "Permissions") {
-                    Label(AppL10n.text("Permissions"), systemImage: "lock.shield")
-                }
-                NavigationLink(value: "Appearance") {
-                    Label(AppL10n.text("Appearance"), systemImage: "eye")
-                }
-                NavigationLink(value: "Media") {
-                    Label(AppL10n.text("Media"), systemImage: "play.laptopcomputer")
-                }
-                NavigationLink(value: "Calendar") {
-                    Label(AppL10n.text("Calendar"), systemImage: "calendar")
-                }
-                NavigationLink(value: "Focus Timer") {
-                    Label(AppL10n.text("Focus Timer"), systemImage: "timer")
-                }
-                NavigationLink(value: "HUD") {
-                    Label(AppL10n.text("HUDs"), systemImage: "dial.medium.fill")
-                }
-                NavigationLink(value: "Battery") {
-                    Label(AppL10n.text("Battery"), systemImage: "battery.100.bolt")
-                }
+            VStack(spacing: 0) {
+                List(selection: $selectedTab) {
+                    NavigationLink(value: "General") {
+                        Label(AppL10n.text("General"), systemImage: "gear")
+                    }
+                    NavigationLink(value: "Permissions") {
+                        Label(AppL10n.text("Permissions"), systemImage: "lock.shield")
+                    }
+                    NavigationLink(value: "Appearance") {
+                        Label(AppL10n.text("Appearance"), systemImage: "eye")
+                    }
+                    NavigationLink(value: "Media") {
+                        Label(AppL10n.text("Media"), systemImage: "play.laptopcomputer")
+                    }
+                    NavigationLink(value: "Calendar") {
+                        Label(AppL10n.text("Calendar"), systemImage: "calendar")
+                    }
+                    NavigationLink(value: "Focus Timer") {
+                        Label(AppL10n.text("Focus Timer"), systemImage: "timer")
+                    }
+                    NavigationLink(value: "HUD") {
+                        Label(AppL10n.text("HUDs"), systemImage: "dial.medium.fill")
+                    }
+                    NavigationLink(value: "Battery") {
+                        Label(AppL10n.text("Battery"), systemImage: "battery.100.bolt")
+                    }
 //                NavigationLink(value: "Downloads") {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
 //                }
-                NavigationLink(value: "Shelf") {
-                    Label(AppL10n.text("Shelf"), systemImage: "books.vertical")
-                }
-                NavigationLink(value: "Shortcuts") {
-                    Label(AppL10n.text("Shortcuts"), systemImage: "keyboard")
-                }
+                    NavigationLink(value: "Shelf") {
+                        Label(AppL10n.text("Shelf"), systemImage: "books.vertical")
+                    }
+                    NavigationLink(value: "Shortcuts") {
+                        Label(AppL10n.text("Shortcuts"), systemImage: "keyboard")
+                    }
                 // NavigationLink(value: "Extensions") {
                 //     Label("Extensions", systemImage: "puzzlepiece.extension")
                 // }
-                NavigationLink(value: "Advanced") {
-                    Label(AppL10n.text("Advanced"), systemImage: "gearshape.2")
+                    NavigationLink(value: "Advanced") {
+                        Label(AppL10n.text("Advanced"), systemImage: "gearshape.2")
+                    }
+                    NavigationLink(value: "About") {
+                        Label(AppL10n.text("About"), systemImage: "info.circle")
+                    }
                 }
-                NavigationLink(value: "About") {
-                    Label(AppL10n.text("About"), systemImage: "info.circle")
+                .listStyle(SidebarListStyle())
+                .tint(.effectiveAccent)
+
+                Divider()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Label(AppL10n.text("Version"), systemImage: "shippingbox")
+                            .font(.caption.weight(.medium))
+                        Spacer(minLength: 4)
+                        Text("v\(Bundle.main.releaseVersionNumber ?? "-")")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    if let updaterController {
+                        CheckForUpdatesView(updater: updaterController.updater)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
+                .padding(10)
             }
-            .listStyle(SidebarListStyle())
-            .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(200)
         } detail: {
@@ -932,7 +953,7 @@ struct About: View {
             }
             VStack(spacing: 0) {
                 Divider()
-                Text("Made with 🫶🏻 by not so boring not.people")
+                Text(verbatim: "谢秋实 🫶🏻 出品")
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)
                     .padding(.bottom, 7)
