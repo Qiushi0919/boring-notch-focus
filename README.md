@@ -1,3 +1,9 @@
+## ⬇️ Download / 下载
+
+**[Download the latest DMG / 下载最新 DMG](https://github.com/Qiushi0919/boring-notch-focus/releases/latest/download/Boring-Notch-Focus.dmg)** · [Release notes / 版本说明](https://github.com/Qiushi0919/boring-notch-focus/releases/latest)
+
+The installer is a GitHub Release asset, so it does not appear in the repository's source-file list. / 安装包是 GitHub Release 附件，不会出现在仓库源码文件列表中。
+
 > [!IMPORTANT]
 > **Boring Notch Focus** is a modified GPLv3 fork maintained by
 > [Qiushi0919](https://github.com/Qiushi0919). It adds a focus timer and

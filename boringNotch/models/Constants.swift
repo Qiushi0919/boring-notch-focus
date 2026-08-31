@@ -258,6 +258,7 @@ enum AppL10n {
         // About
         "Automatic updates are disabled for this custom focus-timer build.": "此番茄钟定制版已关闭自动更新。",
         "Updates are delivered automatically from the Boring Notch Focus release channel.": "更新将通过 Boring Notch Focus 发布通道自动推送。",
+        "Download latest installer": "下载最新安装包",
         "Custom build": "定制版本"
     ]
 

@@ -925,6 +925,14 @@ struct About: View {
                     Text(AppL10n.text("Updates are delivered automatically from the Boring Notch Focus release channel."))
                         .foregroundStyle(.secondary)
                     CheckForUpdatesView(updater: updaterController.updater)
+                    Button {
+                        if let url = URL(string: "https://github.com/Qiushi0919/boring-notch-focus/releases/latest/download/Boring-Notch-Focus.dmg") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        Label(AppL10n.text("Download latest installer"), systemImage: "arrow.down.circle.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
                 } header: {
                     Text(AppL10n.text("Custom build"))
                 }
