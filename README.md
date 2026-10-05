@@ -230,3 +230,5 @@ For a full list of licenses and attributions, please see the [Third-Party Licens
 ## Fork maintainer's portfolio / 此分支维护者的个人主页
 
 [谢秋实 / Qiushi Xie · 中文主页](https://qiushi0919.cn/) · [English portfolio](https://qiushi0919.github.io/)
+
+[个人介绍 / About Qiushi Xie](https://qiushi0919.cn/about/) · [Google Scholar](https://scholar.google.com/citations?user=TkPyZ-UAAAAJ)
